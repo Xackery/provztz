@@ -40,13 +40,16 @@ using namespace std;
 #include "StringIDs.h"
 #include "../common/MiscFunctions.h"
 #include "../common/rulesys.h"
-
+#include "guild_mgr.h" //Shin: Added so guild ranks can be shown on PvP kills.
+#include "../common/misc.h" //Shin: This is for long2ip conversions on guild rank wiretap recording.
+#include "worldserver.h" //Shin: For Worldserver Emote Messages on PVP kills.
 #ifdef WIN32
 #define snprintf	_snprintf
 #define strncasecmp	_strnicmp
 #define strcasecmp  _stricmp
 #endif
 
+extern WorldServer worldserver;	//Shin For Emote Messages.
 extern EntityList entity_list;
 #if !defined(NEW_LoadSPDat) && !defined(DB_LoadSPDat)
 	extern SPDat_Spell_Struct spells[SPDAT_RECORDS];
@@ -142,7 +145,7 @@ bool Mob::CheckHitChance(Mob* other, SkillType skillinuse, int Hand)
 	Mob *attacker=other;
 	Mob *defender=this;
 	float chancetohit = RuleR(Combat, BaseHitChance);
-
+	//float chancetohit = 66.5f; //Shin: On VZTZ this was to make it 25% more hit chance. Likely not needed.
 	if(attacker->IsNPC() && !attacker->IsPet())
 		chancetohit += RuleR(Combat, NPCBonusHitChance);
 
@@ -164,11 +167,10 @@ bool Mob::CheckHitChance(Mob* other, SkillType skillinuse, int Hand)
 	int8 defender_level = defender->GetLevel() ? defender->GetLevel() : 1;
 
 	//Calculate the level difference
-
 	mlog(COMBAT__TOHIT, "Chance to hit before level diff calc %.2f", chancetohit);
 	double level_difference = attacker_level - defender_level;
 	double range = defender->GetLevel();
-	range = ((range / 4) + 3);
+	range = ((range / 4) + 3);	
 
 	if(level_difference < 0)
 	{
@@ -197,19 +199,25 @@ bool Mob::CheckHitChance(Mob* other, SkillType skillinuse, int Hand)
 	chancetohit -= ((float)defender->GetAGI() * RuleR(Combat, AgiHitFactor));
 
 	mlog(COMBAT__TOHIT, "Chance to hit after agil calc %.2f", chancetohit);
-
-	if(attacker->IsClient())
-	{
+	if(attacker->IsClient() && defender->IsClient() && pvpmode)
+	{ //Shin: A PvP encounter.
 		chancetohit -= (RuleR(Combat,WeaponSkillFalloff) * (attacker->CastToClient()->MaxSkill(skillinuse) - attacker->GetSkill(skillinuse)));
 		mlog(COMBAT__TOHIT, "Chance to hit after weapon falloff calc (attack) %.2f", chancetohit);
 	}
+	else
+	{ //Shin: Non PvP Encounter
+		if(attacker->IsClient())
+		{
+			chancetohit -= (RuleR(Combat,WeaponSkillFalloff) * (attacker->CastToClient()->MaxSkill(skillinuse) - attacker->GetSkill(skillinuse)));
+			mlog(COMBAT__TOHIT, "Chance to hit after weapon falloff calc (attack) %.2f", chancetohit);
+		}
 
-	if(defender->IsClient())
-	{
-		chancetohit += (RuleR(Combat,WeaponSkillFalloff) * (defender->CastToClient()->MaxSkill(DEFENSE) - defender->GetSkill(DEFENSE)));
-		mlog(COMBAT__TOHIT, "Chance to hit after weapon falloff calc (defense) %.2f", chancetohit);
+		if(defender->IsClient())
+		{
+			chancetohit += (RuleR(Combat,WeaponSkillFalloff) * (defender->CastToClient()->MaxSkill(DEFENSE) - defender->GetSkill(DEFENSE)));
+			mlog(COMBAT__TOHIT, "Chance to hit after weapon falloff calc (defense) %.2f", chancetohit);
+		}
 	}
-
 	//I dont think this is 100% correct, but at least it does something...
 	if(attacker->spellbonuses.MeleeSkillCheckSkill == skillinuse || attacker->spellbonuses.MeleeSkillCheckSkill == 255) {
 		chancetohit += attacker->spellbonuses.MeleeSkillCheck;
@@ -320,9 +328,9 @@ bool Mob::CheckHitChance(Mob* other, SkillType skillinuse, int Hand)
 	//
 	// Did we hit?
 	//
-
-	float tohit_roll = MakeRandomFloat(0, 100);
 	
+	float tohit_roll = MakeRandomFloat(0, 100);
+	attacker->Message(0, "Hit Chance: %f", chancetohit); //Shin: Debug message.
 	mlog(COMBAT__TOHIT, "Final hit chance: %.2f%%. Hit roll %.2f", chancetohit, tohit_roll);
 	
 	return(tohit_roll <= chancetohit);
@@ -366,8 +374,9 @@ bool Mob::AvoidDamage(Mob* other, sint32 &damage)
 	if (damage > 0 && CanThisClassRiposte() && !other->BehindMob(this, other->GetX(), other->GetY()))
 	{
         skill = GetSkill(RIPOSTE);
-		if (IsClient()) {
-			CastToClient()->CheckIncreaseSkill(RIPOSTE, other, -10);
+		if (IsClient()) { 
+			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN ) //Shin: If PvP, and not green.
+				CastToClient()->CheckIncreaseSkill(RIPOSTE, other, -10);
 		}
 		
 		if (!ghit) {	//if they are not using a garunteed hit discipline
@@ -413,7 +422,8 @@ bool Mob::AvoidDamage(Mob* other, sint32 &damage)
 	if (damage > 0 && CanThisClassBlock() && (!other->BehindMob(this, other->GetX(), other->GetY()) || bBlockFromRear)) {
 		skill = CastToClient()->GetSkill(BLOCKSKILL);
 		if (IsClient()) {
-			CastToClient()->CheckIncreaseSkill(BLOCKSKILL, other, -10);
+			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN ) //Shin: If PvP, and not green.
+				CastToClient()->CheckIncreaseSkill(BLOCKSKILL, other, -10);
 		}
 		
 		if (!ghit) {	//if they are not using a garunteed hit discipline
@@ -453,6 +463,7 @@ bool Mob::AvoidDamage(Mob* other, sint32 &damage)
 	{
         skill = CastToClient()->GetSkill(PARRY);
 		if (IsClient()) {
+			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN ) //Shin: If PvP, and not green.
 			CastToClient()->CheckIncreaseSkill(PARRY, other, -10); 
 		}
 		
@@ -474,7 +485,8 @@ bool Mob::AvoidDamage(Mob* other, sint32 &damage)
 	
         skill = CastToClient()->GetSkill(DODGE);
 		if (IsClient()) {
-			CastToClient()->CheckIncreaseSkill(DODGE, other, -10);
+			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN ) //Shin: If PvP, and not green.
+				CastToClient()->CheckIncreaseSkill(DODGE, other, -10);
 		}
 		
 		if (!ghit) {	//if they are not using a garunteed hit discipline
@@ -1120,7 +1132,41 @@ bool Client::Attack(Mob* other, int Hand, bool bRiposte)
 			damage = max_hit;
 		else
 			damage = MakeRandomInt(min_hit, max_hit);
-
+		//Shin: This is player-based damage mod calculations.
+		mlog(COMBAT__DAMAGE, "Damage calculated to %d (min %d, max %d, str %d, skill %d, DMG %d, lv %d)", damage, min_hit, max_hit, GetSTR(), GetSkill(skillinuse), weapon_damage, mylevel);
+		
+		if(this->IsClient()) 
+		{
+			switch (GetClass()) 
+			{
+			case WARRIOR:
+				max_hit *= 1.20;
+				break;
+			case ROGUE: 
+				max_hit *= 1.45;
+				min_hit *= 1.2;
+				break;						
+			case MONK:  
+				max_hit *= 1.40;
+				min_hit *= 1.2;
+				break;						
+			case RANGER: 
+				max_hit *= 1.30;
+					break;						 
+			case SHADOWKNIGHT: 
+				max_hit *= 1.10;
+					break;							   
+			case PALADIN: 
+				min_hit *= 1.10;
+					break;							   
+			case BARD: 
+				max_hit *= 1.12;  //Bards do not get double attack
+				break;
+			default:
+				max_hit *= 0.9;							   
+			}
+		}
+		this->Message(15, "max_hit = %i min_hit = %i", max_hit, min_hit); //Shin: Debug line
 		mlog(COMBAT__DAMAGE, "Damage calculated to %d (min %d, max %d, str %d, skill %d, DMG %d, lv %d)",
 			damage, min_hit, max_hit, GetSTR(), GetSkill(skillinuse), weapon_damage, mylevel);
 
@@ -1272,11 +1318,13 @@ void Client::Damage(Mob* other, sint32 damage, int16 spell_id, SkillType attack_
 	// EverHood - Blasting ourselfs is considered PvP 
 	//Don't do PvP mitigation if the caster is damaging himself
 	if(other && other->IsClient() && (other != this) && damage > 0) {
-		int PvPMitigation = 100;
+		int PvPMitigation = 75; //Shin: From 100 to 75 on VZTZ
 		if(attack_skill == ARCHERY)
-			PvPMitigation = 80;
-		else
-			PvPMitigation = 67;
+			PvPMitigation = 60; //Shin: From 80 to 60 on VZTZ
+		//else //Shin: 75 is used for all non-archery.
+		//	PvPMitigation = 67;
+		this->Message(15, "PvP Mitigation = %i", PvPMitigation); //Shin: Debug
+		//other->Message(15, "PvP Mitigation = %i", PvPMitigation);
 		damage = (damage * PvPMitigation) / 100;
 	}
 			
@@ -1286,8 +1334,10 @@ void Client::Damage(Mob* other, sint32 damage, int16 spell_id, SkillType attack_
 	//do a majority of the work...
 	CommonDamage(other, damage, spell_id, attack_skill, avoidable, buffslot, iBuffTic);
 	
-	if (damage > 0) {
-
+	if (damage > 0) 
+	{//if the other is not green, and this is not a spell
+		if (other && other->IsNPC() && (spell_id == SPELL_UNKNOWN) && GetLevelCon(other->GetLevel()) != CON_GREEN )
+			CheckIncreaseSkill(DEFENSE, other, -10);
 		if (spell_id == SPELL_UNKNOWN)
 			CheckIncreaseSkill(DEFENSE, other, -15);
 	}
@@ -1344,11 +1394,80 @@ void Client::Death(Mob* killerMob, sint32 damage, int16 spell, SkillType attack_
 	SetHorseId(0);
 	dead = true;
 	dead_timer.Start(5000, true);
+	float pvp_points = 6.0; //Shin: PvP score system
 
 	if (killerMob != NULL)
 	{
+		int linkBuffSlot = killerMob->GetBuffSlotFromType(SE_DamageRedirect);
+		//if(linkBuffSlot > 0 && linkBuffSlot < 26) { //Shin: TODO: Figure out how to get DropDelayTarget working in 0.8.0
+		//	killerMob->DropDelayTarget(linkBuffSlot);			
+		//}
 		if (killerMob->IsNPC())
 			parse->Event(EVENT_SLAY, killerMob->GetNPCTypeID(), 0, killerMob->CastToNPC(), this);
+		//Lieka Edit:  PvP death message	
+		if(killerMob->IsPet() && killerMob->GetOwner()->IsClient())   //Null: display message if pet killed player
+			killerMob = killerMob->GetOwner();
+		if(killerMob->IsClient()) {
+			char errbuf[MYSQL_ERRMSG_SIZE];
+			char *query = 0;
+				if (killerMob->GetName() == this->GetName()) { //Self Death
+					if (guild_mgr.GetGuildName(this->GuildID()) == "") { //Self Not Guilded
+						database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', '%s', 'PvP: %s killed by %s in %s!', '%s');", killerMob->GetName(), this->GetName(), this->GetName(),killerMob->GetName(), zone->GetShortName(), long2ip(killerMob->CastToClient()->GetIP())), errbuf);
+						worldserver.SendEmoteMessage(0,0,0,15,"PvP News: %s [%d] have killed themselves in %s!",this->GetName(),this->GetLevel(), zone->GetLongName());
+					} else { //Self Guilded
+						database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', '%s', 'PvP: %s <%s> killed by %s <%s> in %s!', '%s');", killerMob->GetName(), this->GetName(), this->GetName(), guild_mgr.GetGuildName(this->GuildID()), killerMob->GetName(),guild_mgr.GetGuildName((killerMob->CastToClient())->GuildID()), zone->GetShortName(), long2ip(killerMob->CastToClient()->GetIP()).c_str()), errbuf);
+						worldserver.SendEmoteMessage(0,0,0,15,"PvP News: %s <%s> [%d] have killed themselves in %s!",this->GetName(),guild_mgr.GetGuildName(this->GuildID()), this->GetLevel(), zone->GetLongName());
+					}
+				} else { //killerMob Killer
+					if (guild_mgr.GetGuildName(this->GuildID()) == "") { //Self Not Guilded
+						if (guild_mgr.GetGuildName(killerMob->CastToClient()->GuildID()) == "") { //Killer Not Guilded
+							database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', '%s', 'PvP: %s killed by %s in %s!', '%s');", killerMob->GetName(), this->GetName(), this->GetName(),killerMob->GetName(), zone->GetShortName(), long2ip(killerMob->CastToClient()->GetIP()).c_str()), errbuf);
+							worldserver.SendEmoteMessage(0,0,0,15,"PvP News: %s [%d] has been slain by %s [%d] in %s!",this->GetName(), this->GetLevel(), killerMob->GetName(), killerMob->GetLevel(), zone->GetLongName());
+						} else { //Killer Guilded
+							database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', '%s', 'PvP: %s killed by %s <%s> in %s!', '%s');", killerMob->GetName(), this->GetName(), this->GetName(),killerMob->GetName(),guild_mgr.GetGuildName((killerMob->CastToClient())->GuildID()), zone->GetShortName(), long2ip(killerMob->CastToClient()->GetIP()).c_str()), errbuf);
+							worldserver.SendEmoteMessage(0,0,0,15,"PvP News: %s [%d] has been slain by %s <%s> [%d] in %s!",this->GetName(),this->GetLevel(), killerMob->GetName(), killerMob->GetLevel(), guild_mgr.GetGuildName((killerMob->CastToClient())->GuildID()),zone->GetLongName());
+						}
+					} else { //Self Guilded
+						if (guild_mgr.GetGuildName(this->GuildID()) == "") { //Killer Not Guilded
+							database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', '%s', 'PvP: %s <%s> killed by %s in %s!', '%s');", killerMob->GetName(), this->GetName(), this->GetName(), guild_mgr.GetGuildName(this->GuildID()), killerMob->GetName(), zone->GetShortName(), long2ip(killerMob->CastToClient()->GetIP()).c_str()), errbuf);
+							worldserver.SendEmoteMessage(0,0,0,15,"PvP News: %s <%s> [%d] has been slain by %s [%d] in %s!",this->GetName(),guild_mgr.GetGuildName(this->GuildID()),this->GetLevel(), killerMob->GetName(), killerMob->GetLevel(), zone->GetLongName());
+						} else { //Killer Guilded
+							database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', '%s', 'PvP: %s <%s> killed by %s <%s> in %s!', '%s');", killerMob->GetName(), this->GetName(), this->GetName(), guild_mgr.GetGuildName(this->GuildID()), killerMob->GetName(),guild_mgr.GetGuildName((killerMob->CastToClient())->GuildID()), zone->GetShortName(), long2ip(killerMob->CastToClient()->GetIP()).c_str()), errbuf);
+							worldserver.SendEmoteMessage(0,0,0,15,"PvP News: %s <%s> [%d] has been slain by %s <%s> [%d] in %s!",this->GetName(),guild_mgr.GetGuildName(this->GuildID()),this->GetLevel(), killerMob->GetName(),guild_mgr.GetGuildName((killerMob->CastToClient())->GuildID()), killerMob->GetLevel(), zone->GetLongName());
+						}
+					}
+				}
+			if(this->GetLevel() >= 50 && killerMob->GetLevel() >= 50 && !zone->IsCity()) 
+			{ //Shin: Do PvP point update
+				if (this->GetName() == killerMob->GetName()) {
+					database.RunQuery(query, MakeAnyLenString(&query, "UPDATE character_ SET pvp_points = (pvp_points - 6) WHERE id = %i;", this->CharacterID()), errbuf);
+				}else{
+					if(killerMob->IsGrouped() && pvp_points != 1) {
+						Group* pvp_group = entity_list.GetGroupByClient(killerMob->CastToClient());
+						if(pvp_group != 0) {
+						pvp_points = pvp_points / pvp_group->GroupCount();
+						for(int i=0;i<6;i++) { // Doesnt work right, needs work
+							if(pvp_group->members[i] != NULL) {
+								database.RunQuery(query, MakeAnyLenString(&query, "UPDATE guilds SET pvp_points = (pvp_points + %f) WHERE id = %i;", pvp_points, pvp_group->members[i]->CastToClient()->GuildID()), errbuf);
+								database.RunQuery(query, MakeAnyLenString(&query, "UPDATE character_ SET pvp_points = (pvp_points + %f) WHERE id = %i;", pvp_points, pvp_group->members[i]->CastToClient()->CharacterID()), errbuf);
+							}
+						}
+						
+						database.RunQuery(query, MakeAnyLenString(&query, "UPDATE guilds SET pvp_points = (pvp_points - 6) WHERE id = %i;", this->GuildID()), errbuf);
+						database.RunQuery(query, MakeAnyLenString(&query, "UPDATE character_ SET pvp_points = (pvp_points - 6) WHERE id = %i;", this->CharacterID()), errbuf);
+						}
+					}else{
+							database.RunQuery(query, MakeAnyLenString(&query, "UPDATE guilds SET pvp_points = (pvp_points + %f) WHERE id = %i;", pvp_points, killerMob->CastToClient()->GuildID()), errbuf);
+							database.RunQuery(query, MakeAnyLenString(&query, "UPDATE character_ SET pvp_points = (pvp_points + %f) WHERE id = %i;",pvp_points, killerMob->CastToClient()->CharacterID()), errbuf);
+							database.RunQuery(query, MakeAnyLenString(&query, "UPDATE guilds SET pvp_points = (pvp_points - %f) WHERE id = %i;",pvp_points, this->GuildID()), errbuf);
+							database.RunQuery(query, MakeAnyLenString(&query, "UPDATE character_ SET pvp_points = (pvp_points - %f) WHERE id = %i;",pvp_points, this->CharacterID()), errbuf);
+						
+					}
+				}
+			}
+			safe_delete_array(query);
+		//End Lieka Edit
+	
 		
 		if(killerMob->IsClient() && (IsDueling() || killerMob->CastToClient()->IsDueling())) {
 			SetDueling(false);
@@ -1369,6 +1488,7 @@ void Client::Death(Mob* killerMob, sint32 damage, int16 spell, SkillType attack_
 			}
 		}
 	}
+	} //Shin: This nested bracket may belong somewhere else..! Figure it out!
 
 	entity_list.RemoveFromTargets(this);
 	hate_list.RemoveEnt(this);
@@ -1727,8 +1847,8 @@ bool NPC::Attack(Mob* other, int Hand, bool bRiposte)	 // Kaiyodo - base functio
 		mlog(COMBAT__DAMAGE, "Final damage against %s: %d", other->GetName(), damage);
 		
 		if(other->IsClient() && IsPet() && GetOwner()->IsClient()) {
-			//pets do half damage to clients in pvp
-			damage=damage/2;
+			//Shin: Pets do 66% damage to clients in PvP, not half
+			damage=damage/1.5;
 		}
 	}
 	else

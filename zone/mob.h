@@ -921,7 +921,6 @@ bool logpos;
 	inline float GetCWPP() const { return(cur_wp_pause); }
 	inline int GetCWP() const { return(cur_wp); }
 	virtual FACTION_VALUE GetReverseFactionCon(Mob* iOther) { return FACTION_INDIFFERENT; }
-	
 	inline bool IsTrackable() const { return(trackable); }
 	inline bool HasRune() const { return m_hasRune; }
 	inline bool HasSpellRune() const { return m_hasSpellRune; }

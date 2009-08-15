@@ -491,6 +491,7 @@ typedef enum  {
 //#define SE_Unknown381				381	//not used
 #define SE_BlockDS					382 //something to do with blocking a % of certain ds?
 #define SE_Leap						383 //used to leap forward? probably something like a small knock back reverse to push you forward
+#define SE_DamageRedirect			348 //Deal % damage to another target
 //#define SE_Unknown384				384	//not used
 //#define SE_Unknown385				385	//not used
 //last effect
