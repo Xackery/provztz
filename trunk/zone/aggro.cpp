@@ -551,9 +551,19 @@ bool Mob::IsAttackAllowed(Mob *target, bool isSpellAttack)
 			{
 				c1 = mob1->CastToClient();
 				c2 = mob2->CastToClient();
-	
-				if	// if both are pvp they can fight
+				//Shin: vars for +/- 10 checks
+				int c1_level = c1->GetLevel(); // Level of Client 1
+				int c2_level = c2->GetLevel(); // Level of Client 2	
+			
+				int c1_guild = c1->GuildID();
+				int c2_guild = c2->GuildID();
+
+				if	// TheLieka:  If they are: Flagged for PvP; +/- 10 level; level 7+; not in the same guild: Allow Fight.
 				(
+					((c1_level + 10) >= c2_level) && 
+					((c2_level + 10) >= c1_level) && 
+					((c1_level >= 7) && (c2_level >= 7)) &&
+					((c1_guild != c2_guild) || (c1_guild == GUILD_NONE) || (c1_guild == 0) || (c2_guild == GUILD_NONE) || (c2_guild == 0)) &&
 					c1->GetPVP() &&
 					c2->GetPVP()
 				)
@@ -718,8 +728,14 @@ bool Mob::IsBeneficialAllowed(Mob *target)
 			{
 				c1 = mob1->CastToClient();
 				c2 = mob2->CastToClient();
-
-				if(c1->GetPVP() == c2->GetPVP())
+				int c1_guild = c1->GuildID(); //Shin: Spell +/- 10 lvl and >7 check code. TODO: Add a check to allow for non-heal beneficials?
+				int c2_guild = c2->GuildID();
+				int c1_level = c1->GetLevel(); // Level of Client 1
+				int c2_level = c2->GetLevel(); // Level of Client 2	
+				if ( //Lieka Begin Edit:  Allow beneficial spells if Your target is in your guild or you are within 10 levels of your target.
+					((c1_guild == c2_guild) && (c1_guild != GUILD_NONE) && (c1_guild != 0) && (c2_guild != GUILD_NONE) && (c2_guild != 0)) ||
+					(((c1_level + 10) >= c2_level) && ((c2_level + 10) >= c1_level) && c1->GetPVP() == c2->GetPVP())
+					)
 					return true;
 				else if	// if they're dueling they can heal each other too
 				(
@@ -845,11 +861,13 @@ bool Mob::CombatRange(Mob* other)
 	}
 
 	// this could still use some work, but for now it's an improvement....
-
-	if (size_mod > 29)
-		size_mod *= size_mod;
-	else if (size_mod > 19)
-		size_mod *= size_mod * 2;
+	
+	//if (size_mod > 29)
+	//	size_mod *= size_mod;
+	//else if (size_mod > 19)
+	//	size_mod *= size_mod * 2;
+	if(other->IsClient() && this->IsClient()) //Null: PvP size mod
+		size_mod *= size_mod * 6;	//Shin: Just used the simplified hitbox of VZTZ's source
 	else
 		size_mod *= size_mod * 4;
 
