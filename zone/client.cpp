@@ -1330,13 +1330,17 @@ void Client::UpdateWho(int8 remove) {
 	scl->instance_id = zone->GetInstanceID();
 	scl->race = this->GetRace();
 	scl->class_ = GetClass();
-	scl->level = GetLevel();
+	scl->level = GetLevel();	
 	if (m_pp.anon == 0)
 		scl->anon = 0;
-	else if (m_pp.anon == 1)
-		scl->anon = 1;
-	else if (m_pp.anon >= 2)
+	else if (m_pp.anon == 1 && (Admin() >= 40))
+		scl->anon = 1; //Shin: This is a Lieka hack to make anon characters not anon.
+	else if (m_pp.anon >= 2 && (Admin() >= 40))
 		scl->anon = 2;
+	else if (m_pp.anon == 1 && (Admin() < 40))
+		scl->anon = 0;
+	else if (m_pp.anon >= 2 && (Admin() < 40))
+		scl->anon = 0;
 
 	scl->tellsoff = tellsoff;
 	scl->guild_id = guild_id;
