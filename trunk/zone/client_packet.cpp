@@ -991,6 +991,18 @@ void Client::CheatDetected(CheatTypes CheatType)
 				sprintf(hString, "/MQWarp with location %.2f, %.2f, %.2f", GetX(), GetY(), GetZ());
 				database.SetMQDetectionFlag(this->account_name,this->name, hString, zone->GetShortName());
 				warp_threshold = 1;   //Null:  bringing the detector back up to one to avoid chain detections.
+				//Shin: This is a PvP system addition to allow players to smack hackers.
+				Message(13, "Your account has been reported for hacking.");
+				database.SetHackerFlag(this->account_name, this->name, "MQWarp");
+				MovePC(zone->GetZoneID(),zone->safe_x(),zone->safe_y(), zone->safe_z(), 0, false, ZoneSolicited);
+				SetMana(0);
+				SetHP(5);
+				BuffFadeAll();
+				SpellFinished(757, this);
+				this->Stun(10000);
+				AddBuff(this,134,300);
+				AddBuff(this,230,300);
+				worldserver.SendEmoteMessage(0,0,0,13,"<MQWarp Detector>.  %s was just caught warping in %s.  Come get your free kill!",this->GetName(),zone->GetLongName());
 			}
 			break;
 		case MQZone:
@@ -999,6 +1011,17 @@ void Client::CheatDetected(CheatTypes CheatType)
 				char hString[250];
 				sprintf(hString, "/MQZone used at %.2f, %.2f, %.2f", GetX(), GetY(), GetZ());
 				database.SetMQDetectionFlag(this->account_name,this->name, hString, zone->GetShortName());
+				//Shin: This is a PVP system addition to allow players to smack hackers
+				Message(13, "Your account has been reported for hacking.");
+				database.SetHackerFlag(this->account_name, this->name, "MQZone");
+				MovePC(zone->GetZoneID(),zone->safe_x(),zone->safe_y(), zone->safe_z(), 0, false, ZoneSolicited);
+				SetMana(0);
+				SetHP(5);
+				BuffFadeAll();
+				AddBuff(this,757,52);
+				AddBuff(this,134,52);
+				AddBuff(this,230,52);
+				worldserver.SendEmoteMessage(0,0,0,13,"<MQZone Detector>.  %s as just caught using Macroquest to /Zone to %s.  Come get your free kill!",this->GetName(),zone->GetLongName());
 			}
 			break;
 		case MQGate:
@@ -1014,6 +1037,14 @@ void Client::CheatDetected(CheatTypes CheatType)
 					this->SetZone(this->GetZoneID(), 0); //Lieka:  Prevent the player from zoning, place him back in the zone where he tried to originally /gate.
 
 				}
+				//Shin: This is a PVP system addition to allow players to smack hackers
+				SetMana(0);
+				SetHP(5);
+				BuffFadeAll();
+				AddBuff(this,757,52);
+				AddBuff(this,134,52);
+				AddBuff(this,230,52);
+				worldserver.SendEmoteMessage(0,0,0,13,"<MQGate Detector>.  %s was just caught using Macroquest to /Gate to %s.  Come get your free kill!",this->GetName(),zone->GetLongName());
 			}
 			break;
 		case MQGhost: //Lieka:  Not currently implemented, but the framework is in place - just needs detection scenarios identified
