@@ -368,7 +368,7 @@ void PerlembParser::EventCommon(QuestEventID event, int32 objid, const char * da
 
 			// Need to figure out why one of these casts would fail..
 			if (client && npc) {
-				fac = client->GetFactionLevel(client->GetID(), npcmob->GetID(), client->GetRace(), client->GetClass(), DEITY_AGNOSTIC, npc->GetPrimaryFaction(), npcmob);
+				fac = client->GetFactionLevel(client->CharacterID(), npcmob->GetID(), client->GetRace(), client->GetClass(), DEITY_AGNOSTIC, npc->GetPrimaryFaction(), npcmob);
 			}
 			else if (!client) {
 				LogFile->write(EQEMuLog::Status, "WARNING: cast failure on mob->CastToClient()");
@@ -628,13 +628,13 @@ void PerlembParser::ReloadQuests() {
 			perl->Reinit();
 		map_funs();
 	}
-	catch(const char * msg) {
+	catch(std::exception &e) {
 		if(perl != NULL) {
 			delete perl;
 			perl = NULL;
 		}
-		LogFile->write(EQEMuLog::Status, "Error re-initializing perlembed: %s", msg);
-		throw msg;
+		LogFile->write(EQEMuLog::Status, "Error re-initializing perlembed: %s", e.what());
+		throw e.what();
 	}
 	try {
 		LoadScript(0, NULL);
