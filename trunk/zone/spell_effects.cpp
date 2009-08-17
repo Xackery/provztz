@@ -306,10 +306,14 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 #endif
 				if(IsClient())
 				{
-
-					if(caster) 
+					if(caster) { //Shin: Ensure they're in your group. This is to prevent annoying enemies.
+						Group* group = entity_list.GetGroupByClient(this->CastToClient());
+						if((caster != this) && (!group || !group->IsGroupMember(caster))) {
+							caster->Message(13, "The target must be in your group to cast this spell");
+							break;
+						}					
 						CastToClient()->SendOPTranslocateConfirm(caster, spell_id);
-					
+					}
 				}
 				break;
 			}
@@ -449,6 +453,9 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 #ifdef SPELL_EFFECT_SPAM
 				snprintf(effect_desc, _EDLEN, "Movement Speed: %+i", effect_value);
 #endif
+				if(IsSnareSpell(spell_id)) { //Shin: Check for reduced duration on snare. (May not need?)
+					buffs[buffslot].ticsremaining = ((buffs[buffslot].ticsremaining * partial) / 100);
+				}
 				// solar: this is calculated with bonuses
 				break;
 			}
@@ -475,6 +482,12 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 #ifdef SPELL_EFFECT_SPAM
 				snprintf(effect_desc, _EDLEN, "Invisibility");
 #endif
+				if(IsClient()) { //Shin: Make sure target in group, no reason to kill pets with invis.
+					Group* group = entity_list.GetGroupByClient(this->CastToClient());
+
+					if(caster != this && (!group || !group->IsGroupMember(caster)))
+						break;
+				}
 				// solar: TODO already invis message and spell kill from SpellOnTarget
 				SetInvisible(true);
 				break;
@@ -485,6 +498,12 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 #ifdef SPELL_EFFECT_SPAM
 				snprintf(effect_desc, _EDLEN, "Invisibility to Animals");
 #endif
+				if(IsClient()) { //Shin: Make sure target in group, no reason to kill pets with invis.
+					Group* group = entity_list.GetGroupByClient(this->CastToClient());
+
+					if(caster != this && (!group || !group->IsGroupMember(caster)))
+						break;
+				}
 				invisible_animals = true;		// Mongrel: We're now invis to undead
 				break;
 			}
@@ -495,6 +514,12 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 #ifdef SPELL_EFFECT_SPAM
 				snprintf(effect_desc, _EDLEN, "Invisibility to Undead");
 #endif
+				if(IsClient()) { //Shin: Make sure target in group, no reason to kill pets with invis.
+					Group* group = entity_list.GetGroupByClient(this->CastToClient());
+
+					if(caster != this && (!group || !group->IsGroupMember(caster)))
+						break;
+				}
 				invisible_undead = true;		// Mongrel: We're now invis to undead
 				break;
 			}
@@ -1047,6 +1072,7 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 
 			case SE_Blind:
 			{
+				buffs[buffslot].ticsremaining = ((buffs[buffslot].ticsremaining * partial) / 100); //Shin: Added for partial blinds.
 #ifdef SPELL_EFFECT_SPAM
 				snprintf(effect_desc, _EDLEN, "Blind: %+i", effect_value);
 #endif
@@ -1239,8 +1265,8 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 #ifdef SPELL_EFFECT_SPAM
 				snprintf(effect_desc, _EDLEN, "Spin: %d", effect_value);
 #endif
-				// solar: the spinning is handled by the client
-				if(SpecAttacks[UNSTUNABLE] || (GetLevel() > 55)) //spin effects will only work on things up to level 55
+				// solar: the spinning is handled by the client, Shin: Added the bypass of lvl 55 check if it's PvP
+				if(SpecAttacks[UNSTUNABLE] || (GetLevel() > 55) && !(this->IsClient() && caster->IsClient())) //spin effects will only work on things up to level 55
 				{
 					caster->Message_StringID(MT_Shout, IMMUNE_STUN);
 				}
@@ -1388,6 +1414,7 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 
 			case SE_Root:
 			{
+				buffs[buffslot].ticsremaining = ((buffs[buffslot].ticsremaining * partial) / 100); //Shin: Partial system for root.
 #ifdef SPELL_EFFECT_SPAM
 				snprintf(effect_desc, _EDLEN, "Root: %+i", effect_value);
 #endif
@@ -3130,7 +3157,12 @@ void Mob::DoBuffTic(int16 spell_id, int32 ticsremaining, int8 caster_level, Mob*
 		}
 
 		case SE_Charm: {
-			if (!caster || !PassCharismaCheck(caster, this, spell_id)) {
+			if (!PassCharismaCheck(caster, this, spell_id)) { //Shin: PvP always resists. 
+				if(caster->IsClient())
+					caster->Message_StringID(MT_Shout, TARGET_RESISTED, spells[spell_id].name);
+
+				if(IsClient())
+					Message_StringID(MT_Shout, YOU_RESIST, spells[spell_id].name);
 				BuffFadeByEffect(SE_Charm);
 			}
 
@@ -3363,7 +3395,13 @@ void Mob::BuffFadeBySlot(int slot, bool iRecalcBonuses)
 				rooted = false;
 				break;
 			}
-
+			case SE_SpinTarget: 
+			{ //Shin: Spin target works in PvP.
+				if(this->IsClient())
+					this->CastToClient()->UnStun();
+				else
+					UnStun();				
+			}
 			case SE_Fear:
 			{
 				if(RuleB(Combat, EnableFearPathing)){

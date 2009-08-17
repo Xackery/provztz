@@ -111,6 +111,7 @@ protected:
 	void MoveItemToCorpse(Client *client, ItemInst *item, sint16 equipslot);
 
 private:
+	bool		lootcorpse; //Shin: Added for the slow down loot corpse check.
 	bool		p_PlayerCorpse;
 	bool		pIsChanged;
 	bool		pLocked;

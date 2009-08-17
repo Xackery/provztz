@@ -955,7 +955,13 @@ void Corpse::LootItem(Client* client, const EQApplicationPacket* app)
 	client->QueuePacket(app);
 	
 	LootingItem_Struct* lootitem = (LootingItem_Struct*)app->pBuffer;
-
+	//Shin: This was a VZTZ fix	, Only allow 1 Loot Request at a time
+	if(lootcorpse == true){
+		lootcorpse = false;
+		//client->Message(13, "Loot Items on Corpse Slower");
+		SendEndLootErrorPacket(client);
+		return;
+	}
 	if (this->BeingLootedBy != client->GetID()) {
 		client->Message(13, "Error: Corpse::LootItem: BeingLootedBy != client");
 		SendEndLootErrorPacket(client);
@@ -993,7 +999,13 @@ void Corpse::LootItem(Client* client, const EQApplicationPacket* app)
 	{
 		item = database.GetItem(item_data->item_id);
 	}
-	
+	//Shin: This is some PvP related loot hack jobs.
+	if (((item_data->equipSlot >= 251) && (item_data->equipSlot <= 330)) && ((charid == client->CharacterID()) && (IsPlayerCorpse()))) {
+		char itemdupemsg[150];
+		sprintf(itemdupemsg, "Loot Item Duplication {%i}", item);
+		database.SetMQDetectionFlag(client->AccountName(), client->GetName(), itemdupemsg, zone->GetShortName());
+		return;
+	}	
 	if (item != 0)
 	{
 		if(item_data)
@@ -1119,7 +1131,7 @@ void Corpse::LootItem(Client* client, const EQApplicationPacket* app)
 				}
 			}
 		}
-		
+		lootcorpse = false; //Allow another item to be looted.
 		if(GetPKItem()!=-1)
 			SetPKItem(0);
 		
