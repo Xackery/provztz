@@ -32,7 +32,7 @@ int Mob::GetKickDamage() const {
 	multiple += 100;
 	int dmg=(
 			    (
-				 (GetSkill(KICK) + GetSTR() + GetLevel())*100 / 9000
+				 (GetSkill(KICK) + (GetSTR()/2) + GetLevel())*100 / 9000
 				) * multiple
 			  )
 			  + 600;	//Set a base of 6 damage, 1 seemed too low at the sub level 30 level.
@@ -200,8 +200,8 @@ void Client::OPCombatAbility(const EQApplicationPacket *app) {
 	if ((ca_atk->m_atk == 100) 
 	  && (ca_atk->m_skill == BASH)) {    // SLAM - Bash without a shield equipped
 		if (GetTarget() != this) {
-			
-			CheckIncreaseSkill(BASH, GetTarget(), 10);
+			if(!GetTarget()->IsClient())	 //Shin: Dont skill up vs players
+				CheckIncreaseSkill(BASH, GetTarget(), 10);
 			DoAnim(animTailRake);
 
 			if(GetWeaponDamage(GetTarget(), GetInv().GetItem(SLOT_SECONDARY)) <= 0 &&
@@ -234,7 +234,8 @@ void Client::OPCombatAbility(const EQApplicationPacket *app) {
 
 	if ((ca_atk->m_atk == 100) && (ca_atk->m_skill == FRENZY)) 
 	{
-		CheckIncreaseSkill(FRENZY, GetTarget(), 10);
+		if(!GetTarget()->IsClient()) //Shin: Dont skill up vs players
+			CheckIncreaseSkill(FRENZY, GetTarget(), 10);
 
 		int dmg = 1 + (GetSkill(FRENZY) / 100);
 
@@ -293,7 +294,8 @@ void Client::OPCombatAbility(const EQApplicationPacket *app) {
 				break;
 			}
 			if (GetTarget() != this) {
-				CheckIncreaseSkill(KICK, GetTarget(), 10);
+				if(!GetTarget()->IsClient()) //Shin: Dont skill up vs players
+					CheckIncreaseSkill(KICK, GetTarget(), 10);
 				DoAnim(animKick);
 
 				if(GetWeaponDamage(GetTarget(), GetInv().GetItem(SLOT_FEET)) <= 0){
@@ -397,7 +399,7 @@ int Mob::MonkSpecialAttack(Mob* other, int8 unchecked_type)
 		}
 	case DRAGON_PUNCH:{
 		skill_type = DRAGON_PUNCH;
-		max_dmg = ((GetSTR()+GetSkill(skill_type)) * RuleI(Combat, DragonPunchBonus) / 100) + 26;
+		max_dmg = (((GetSTR()/2)+GetSkill(skill_type)) * RuleI(Combat, DragonPunchBonus) / 100) + 26;
 		itemslot = SLOT_HANDS;
 
 		DoAnim(animTailRake);
@@ -407,7 +409,7 @@ int Mob::MonkSpecialAttack(Mob* other, int8 unchecked_type)
 
 	case EAGLE_STRIKE:{
 		skill_type = EAGLE_STRIKE;
-		max_dmg = ((GetSTR()+GetSkill(skill_type)) * RuleI(Combat, EagleStrikeBonus) / 100) + 19;
+		max_dmg = (((GetSTR()/2)+GetSkill(skill_type)) * RuleI(Combat, EagleStrikeBonus) / 100) + 19;
 		itemslot = SLOT_HANDS;
 
 		DoAnim(animEagleStrike);
@@ -417,7 +419,7 @@ int Mob::MonkSpecialAttack(Mob* other, int8 unchecked_type)
 
 	case TIGER_CLAW:{
 		skill_type = TIGER_CLAW;
-		max_dmg = ((GetSTR()+GetSkill(skill_type)) * RuleI(Combat, TigerClawBonus) / 100) + 12;
+		max_dmg = (((GetSTR()/2)+GetSkill(skill_type)) * RuleI(Combat, TigerClawBonus) / 100) + 12;
 		itemslot = SLOT_HANDS;
 
 		DoAnim(animTigerClaw);
@@ -427,7 +429,7 @@ int Mob::MonkSpecialAttack(Mob* other, int8 unchecked_type)
 
 	case ROUND_KICK:{
 		skill_type = ROUND_KICK;
-		max_dmg = ((GetSTR()+GetSkill(skill_type)) * RuleI(Combat, RoundKickBonus) / 100) + 10;
+		max_dmg = (((GetSTR()/2)+GetSkill(skill_type)) * RuleI(Combat, RoundKickBonus) / 100) + 10;
 
 		DoAnim(animRoundKick);
 		reuse = RoundKickReuseTime;

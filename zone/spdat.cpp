@@ -636,7 +636,64 @@ bool IsRuneSpell(int16 spell_id) {
 
 	return Result;
 }
+//Shin: These are some spell checks used in resist system.
 
+bool IsRootSpell(int16 spell_id) {
+	if (IsEffectInSpell(spell_id, SE_Root)){
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+bool IsSnareSpell(int16 spell_id) {
+	if (IsDetrimentalSpell(spell_id) && IsEffectInSpell(spell_id, SE_MovementSpeed)){
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+bool IsMaloSpell(int16 spell_id) {
+	if (IsDetrimentalSpell(spell_id) && IsEffectInSpell(spell_id, SE_ResistFire) && IsEffectInSpell(spell_id, SE_ResistCold) && IsEffectInSpell(spell_id, SE_ResistPoison) && IsEffectInSpell(spell_id, SE_ResistMagic)){
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+bool IsPoisonSpell(int16 spell_id) {
+	if (IsDetrimentalSpell(spell_id) && IsEffectInSpell(spell_id, SE_PoisonCounter)){
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+int GetSpellResistDifficulty(int16 spell_id)
+{
+	return (spells[spell_id].ResistDiff);
+}
+bool IsWhirlSpell(int16 spell_id) {
+	if (spell_id == 303 || //Whirl till You Hurl
+		spell_id == 619 || //Dyn`s Dizzying Draught
+		spell_id == 899){  //Whirl Until You Hurl
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+bool IsDispellSpell(int16 spell_id) {
+	if (IsEffectInSpell(spell_id, SE_CancelMagic)){
+		return true;
+	}
+	else {
+		return false;
+	}
+}
 bool IsMagicRuneSpell(int16 spell_id) {
 	bool Result = false;
 

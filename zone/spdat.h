@@ -497,7 +497,14 @@ typedef enum  {
 //last effect
 
 #define DF_Permanent		50
-
+#define SE_Justice					365 //Shin: This is stuff on VZTZ. works with DamageOnHeal to do the Damage part.
+#define SE_DelayedAttack			366
+#define SE_NecroCustom				367
+#define SE_IncreaseFrenzy			400 //Null used for custom pve event.
+#define SE_BuffSteal				401
+#define SE_TychusResEffects			402
+#define SE_TrainCustom				403
+#define SE_WrathOfVallon			404
 //
 // solar: note this struct is historical, we don't actually need it to be
 // aligned to anything, but for maintaining it it is kept in the order that
@@ -612,6 +619,8 @@ struct SPDat_Spell_Struct
 	#define SPDAT_RECORDS	3602
 #endif
 
+
+bool IsDispellSpell(int16 spell_id);
 bool IsTargetableAESpell(int16 spell_id);
 bool IsSacrificeSpell(int16 spell_id);
 bool IsLifetapSpell(int16 spell_id);
@@ -667,6 +676,13 @@ bool IsDiscipline(int16 spell_id);
 bool IsResurrectionEffects(int16 spell_id);
 bool IsRuneSpell(int16 spell_id);
 bool IsMagicRuneSpell(int16 spell_id);
+bool IsRootSpell(int16 spell_id); //Lieka Edit:  For resist adjustments Shin: Added for PvP below this line
+bool IsSnareSpell(int16 spell_id); //Lieka Edit:  For resist adjustments
+bool IsMaloSpell (int16 spell_id); //Lieka Edit:  For resist adjustments
+bool IsPoisonSpell(int16 spell_id); //For custom Poison DD multiplier
+int GetSpellResistDifficulty (int16 spell_id);
+bool IsWhirlSpell(int16 spell_id); //Lieka Edit:  For resist adjustments
+bool IsDispellSpell(int16 spell_id); //Shin: added for PvP above this line
 bool IsManaTapSpell(int16 spell_id);
 bool IsAllianceSpellLine(int16 spell_id);
 bool IsDeathSaveSpell(int16 spell_id);

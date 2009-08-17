@@ -819,14 +819,17 @@ void Mob::CastedSpellFinished(int16 spell_id, int32 target_id, int16 slot, int16
 			if(attacked_count > 15) attacked_count = 15;
 			
 			float channelchance, distance_moved, d_x, d_y, distancemod;
-
+			int myClass = this->GetClass(); //Shin: Get class for channel check
 			if(IsClient())
 			{
-				// max 93% chance at 252 skill
-				channelchance = 30 + GetSkill(CHANNELING) / 400.0f * 100;
-				channelchance -= attacked_count * 2;			
-				channelchance += channelchance * (GetAA(aaChanellingFocus)*5) / 100; 
-				channelchance += channelchance * (GetAA(aaInternalMetronome)*5) / 100;
+				if(myClass != 1 && myClass != 7 && myClass != 9) { //Shin: Non-Melee formula
+					// max 93% chance at 252 skill
+					channelchance = 30 + GetSkill(CHANNELING) / 400.0f * 100;
+					channelchance -= attacked_count * 2; //Shin: This is 1.5 on VZTZ
+					channelchance += channelchance * (GetAA(aaChanellingFocus)*5) / 100; 
+					channelchance += channelchance * (GetAA(aaInternalMetronome)*5) / 100;
+				}else //Melee Formula
+					channelchance = (10 - attacked_count * 2);  //Null:  Very low chance for melee to channel.
 			} else {
 				// NPCs are just hard to interrupt, otherwise they get pwned
 				channelchance = 85;
@@ -2704,7 +2707,32 @@ bool Mob::SpellOnTarget(int16 spell_id, Mob* spelltar)
 				safe_delete(action_packet);
 				return false;
 			}
-		}
+		//Shin: This is a VTTZ target system
+		} else if ((IsDispellSpell(spell_id)) && ((spelltar->IsClient() || spelltar->IsPet()) && (IsClient() || IsPet()))){			
+			if(((this->IsClient() || this->GetOwner()->IsClient()) && (spelltar->IsClient() || spelltar->GetOwner()->IsClient()))) 
+			{
+		
+				int caster_guildid = this->CastToClient()->GuildID(); //Caster Guild ID
+				int target_guildid = 0; //Target Guild ID
+				int target_id = 0;
+
+				if(spelltar->IsClient()){
+					target_guildid = spelltar->CastToClient()->GuildID();     //Null:  need to look this over for rezz code
+					target_id = spelltar->CastToClient()->GetID();
+				} else if (spelltar->GetOwner()->IsClient()) {
+					target_guildid = spelltar->GetOwner()->CastToClient()->GuildID();
+					target_id = spelltar->GetOwner()->CastToClient()->GetID();
+				}
+
+				if((IsDispellSpell(spell_id) && !IsAttackAllowed(spelltar) && !IsResurrectionEffects(spell_id)) && !(((caster_guildid == target_guildid) && (caster_guildid != 0) && (caster_guildid != -1)) || (spelltar->GetID() == this->GetID()) || IsAttackAllowed(spelltar)))
+				{
+					mlog(SPELLS__CASTING_ERR, "Detrimental spell %d can't take hold %s -> %s", spell_id, GetName(), spelltar->GetName());
+					spelltar->Message_StringID(MT_Shout, YOU_ARE_PROTECTED, GetCleanName());
+					safe_delete(action_packet);
+					return false;
+				}
+			}
+		} //Shin: End VZTZ Target
 		else if	( !IsAttackAllowed(spelltar, true) && !IsResurrectionEffects(spell_id)) // Detrimental spells - PVP check
 		{
 			mlog(SPELLS__CASTING_ERR, "Detrimental spell %d can't take hold %s -> %s", spell_id, GetName(), spelltar->GetName());
@@ -2746,7 +2774,8 @@ bool Mob::SpellOnTarget(int16 spell_id, Mob* spelltar)
 		spell_effectiveness = spelltar->ResistSpell(spells[spell_id].resisttype, spell_id, this);
 		if(spell_effectiveness < 100)
 		{
-			if(spell_effectiveness == 0 || !IsPartialCapableSpell(spell_id) )
+			//if(spell_effectiveness == 0 || !IsPartialCapableSpell(spell_id) )
+			if(spell_effectiveness == 0) //Lieka:  Placed back to fix the resist code. Shin: This is part of VZTZ partial resist
 			{
 				mlog(SPELLS__RESISTS, "Spell %d was completely resisted by %s", spell_id, spelltar->GetName());
 				Message_StringID(MT_Shout, TARGET_RESISTED, spells[spell_id].name);
@@ -3019,6 +3048,34 @@ bool Mob::FindBuff(int16 spellid)
 	return false;
 }
 
+int Mob::FindBuffSlot(int16 spellid)
+{ //Shin: This is used for PVP related activities to find available buff slot.
+	int i;
+
+	for(i = 0; i < BUFF_COUNT; i++)
+		if(buffs[i].spellid == spellid)
+			return i;
+
+	return -1;
+}
+
+void Mob::BuffFadeCount(int8 n) 
+{ //Shin: This is used for PVP related activities for buff fading counters.
+	if(n <= 0)
+		return;
+	for (int j = 0; j < BUFF_COUNT; j++) {
+		if(n <= 0)
+			break;
+		if(buffs[j].spellid != SPELL_UNKNOWN && buffs[j].durationformula != DF_Permanent) {
+			n--;
+			BuffFadeBySlot(j, false);
+		}
+	}
+	
+	//we tell BuffFadeBySlot not to recalc, so we can do it only once when were done
+	CalcBonuses();
+}
+
 // solar: removes all buffs
 void Mob::BuffFadeAll()
 {
@@ -3226,10 +3283,11 @@ bool Mob::IsImmuneToSpell(int16 spell_id, Mob *caster)
 // spells that can be partially effective, and this value can be used there.
 //
 float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
-{
-	int caster_level, target_level, resist;
+{ //Shin: Resist Spell system was more or less copy pasted from VZTZ. TODO: Fix so it involves variables and works better.
+	int caster_level, target_level, resist, deviance;
 	float roll, fullchance, resistchance;
-	
+	float resistrate, partialmod = 0; //Shin: For partial resist PvP system.
+
 	if(spell_id != 0 && !IsValidSpell(spell_id))
 	{
 		return 0;
@@ -3352,28 +3410,201 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 		resist = GetMR();
 		break;
 	}
+	//Shin: This is where it gets fun.
+	float specialcases = 0;
+	if (spell_id != 0 && IsPureNukeSpell(spell_id)){
+		switch (caster->GetClass()) {
+			case WIZARD:
+			specialcases += -10;
+			break;
+			case MAGICIAN:
+			specialcases += -6;
+			break;
+			case ENCHANTER:
+			specialcases += -2;
+			break;
+			case NECROMANCER:
+			specialcases += 3;
+			break;
+			case DRUID:
+			specialcases += 0;
+			break;
+			case SHAMAN:
+			specialcases += 7;
+			break;
+			case CLERIC:
+			specialcases += 7;
+			break;										
+			case PALADIN:
+			specialcases += 7;
+			break;
+			case RANGER:
+			specialcases += 7;
+			break;
+			case SHADOWKNIGHT:
+			specialcases += 7;
+			break;
+			case BARD:
+			specialcases += 5;
+			break;
+			case WARRIOR:
+			specialcases += 0;
+			break;
+			case ROGUE:
+			specialcases += 0;
+			break;
+			case MONK:
+			specialcases += 0;
+			break;
+		}
+	}
 
+	if (spell_id != 0 && IsEffectHitpointsSpell(spell_id) && spells[spell_id].buffduration > 1){
+		switch (caster->GetClass()) {
+			case WIZARD:
+			specialcases += 7;
+			break;
+			case MAGICIAN:
+			specialcases += -3;
+			break;
+			case ENCHANTER:
+			specialcases += -2;
+			break;
+			case NECROMANCER:
+			specialcases += -6;
+			break;
+			case DRUID:
+			specialcases += -2;
+			break;
+			case SHAMAN:
+			specialcases += -10;
+			break;
+			case CLERIC:
+			specialcases += 7;
+			break;										
+			case PALADIN:
+			specialcases += 7;
+			break;
+			case RANGER:
+			specialcases += 3;
+			break;
+			case SHADOWKNIGHT:
+			specialcases += 3;
+			break;
+			case BARD:
+			specialcases += -5;
+			break;
+			case WARRIOR:
+			specialcases += 0;
+			break;
+			case ROGUE:
+			specialcases += 0;
+			break;
+			case MONK:
+			specialcases += 0;
+			break;
+		}
+	}
+	if(this->IsClient() && (caster->IsClient() || (caster->IsPet() && caster->GetOwner()->IsClient()))) {
+	if (spell_id != 0 && IsRootSpell(spell_id)){
+		specialcases += 15;
+		partialmod = 45;
+	}
+	if(spell_id != 0 && IsStunSpell(spell_id)) {
+		specialcases += 25;
+	}
+	if (spell_id != 0 && IsSnareSpell(spell_id)){
+		specialcases += 35;
+		partialmod = 35;
+	}
+	if (spell_id != 0 && IsBlindSpell(spell_id)){
+		specialcases += 75;
+	}
+	if (spell_id != 0 && IsSlowSpell(spell_id)){
+		specialcases -= 10;
+	}
+	if (spell_id != 0 && IsMaloSpell(spell_id)){
+		specialcases -= 10;
+	}	
+	if (spell_id != 0 && IsWhirlSpell(spell_id)){
+		specialcases += 75; //Was += 100
+	}	
+	}
+	if (caster->IsClient() && IsMob() && IsFearSpell(spell_id)){
+		specialcases += 75;
+	}
 	// value in spell to adjust base resist by
-	if(spell_id != 0)
-		resist += spells[spell_id].ResistDiff;
+	//if(spell_id != 0)
+	//	resist += spells[spell_id].ResistDiff;
 		
 	//This is our base resist chance given no resists and no level diff, set to a modest 2% by default
-	resistchance = RuleR(Spells, ResistChance); 
+	//resistchance = RuleR(Spells, ResistChance); 
 	
 	//changed this again, just straight 8.5 resist points per level above you
-	float lvldiff = caster_level - target_level;
-	resist += (RuleI(Spells, ResistPerLevelDiff) * (-lvldiff) / 10);
+	//float lvldiff = caster_level - target_level;
+	//resist += (RuleI(Spells, ResistPerLevelDiff) * (-lvldiff) / 10);
+	float lvldiff; //Shin: PvP system level difference.
+	if(caster->IsPet())
+		lvldiff = (caster->GetOwner()->GetLevel()) - target_level;
+	else
+		lvldiff = caster_level - target_level;
+	float partialresist = 0;
+	float partialrange = 0;
+	
+	if(caster && IsClient() && (caster->IsClient() || caster->IsPet())){
+		resistchance = 0;
+		resistchance -= lvldiff * 2; 
+		resistchance += spells[spell_id].ResistDiff;
+	//resistchance += resist * 0.33;
+		resistchance += resist;
+		resistchance += specialcases;
+		resistrate = resistchance;
+		//        higher arch                          raises curve
+		resistchance = (resistchance<0)?0:resistchance;
+		resistchance = (210 * resistchance / (resistchance + 270))-15;        //Null: had a graph that i wanted, and just started plugging away until i got it looking right.
+	} else {
+		resistchance = 0;
+		resistchance -= lvldiff * 5;
+		resistchance += spells[spell_id].ResistDiff; 
+	//	resistchance += resist * 0.2;
+		resistchance += resist;
+		resistchance += specialcases;
+		resistrate = resistchance;
+		//        higher arch                          raises curve
+		resistchance = (resistchance<0)?0:resistchance;
+		resistchance = (pow(resistchance, 1.6f))/100-1;      //Null: had a graph that i wanted, and just started plugging away until it looking right.
+		
+	}
 
+	
+
+	//partialresist = (resistchance - (resistchance/4));
+	//partialrange = (resistchance - partialresist);
+
+	 roll = MakeRandomFloat(0, 100);
+	 //if(caster->IsClient() && caster->CastToClient()->Admin() > 40)
+	//	caster->Message(13, "Roll: %f Resist Chance: %f", roll, resistchance);
+     if(roll > resistchance){
+		 deviance = MakeRandomInt(208, 267);
+		 partialresist = (-1*atan(resistrate/50)*430/3.1415+deviance)-partialmod;           //Null: Outsourced this to The SPG: Math Jesus.
+		 //if(caster->IsClient() && caster->CastToClient()->Admin() > 40)
+			// caster->Message(13, "partialmod: %f partialresist: %f", partialmod, partialresist);
+		 partialresist = (partialresist<0)?0:partialresist;
+		 return (((partialresist>100)?100:partialresist));
+		//return 100;
+																
+	} else {
+		return 0;
 	/*The idea is we come up with 3 ranges of numbers and a roll between 0 and 100
 	[[[Empty Space above the resistchance line]]] - If the roll lands up here the spell wasn't resisted, the lower the resist chance the larger this range is
 	[[[Space between resistchance line and full resist chance line]]] - If the roll ends up here then the spell is resisted but only partially, we take the roll in porportion to where it landed in this range to det how
 	high the partial should be, for example if we rolled barely over the full resist chance line then it would result in a low partial but if we barely missed the spell not resisting then it would result in a very high partial
 	The higher the resist the larger this range will be.
 	[[[Space below the full resist chance line]]] - If the roll ends up down here then the spell was resisted fully, the higher the resist the larger this range will be.
-	*/
+	
 
-	//default 0.40: 500 resist = 200% Base resist while 40 resist = 16% resist base.
-	//Set ResistMod lower to require more resist points per percentage point of resistance.
+	default 0.40: 500 resist = 200% Base resist while 40 resist = 16% resist base.
+	Set ResistMod lower to require more resist points per percentage point of resistance.
 	resistchance += resist * RuleR(Spells, ResistMod); 
 	resistchance += spellbonuses.ResistSpellChance + itembonuses.ResistSpellChance;
 
@@ -3384,7 +3615,8 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 			sint32 focusResist = caster->CastToClient()->GetFocusEffect(focusResistRate, spell_id);
 			resistchance = (resistchance * (100-focusResist) / 100);
 		}
-	}
+	}*/
+/*
 
 #ifdef EQBOTS
 
@@ -3428,8 +3660,8 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 			mlog(SPELLS__RESISTS, "Spell %d: Roll of %.2f > fullchance %.2f, partially resisted, returned %.2f", spell_id, roll, fullchance, (100 * ((roll-fullchance)/(resistchance-fullchance))));
 			//Remove the lower range so it doesn't throw off the proportion.
 			return(100 * ((roll-fullchance)/(resistchance-fullchance)));
-		}
-	}
+		} */
+	 }
 }
 
 float Mob::GetAOERange(uint16 spell_id) {

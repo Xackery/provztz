@@ -176,6 +176,35 @@ NPC::NPC(const NPCType* d, Spawn2* in_respawn, float x, float y, float z, float 
 	INT = d->INT;
 	WIS = d->WIS;
 	CHA = d->CHA;
+	//Shin: This is a hack job on VZTZ to get the regen to work even if DB doesn't have it set.
+	//Trumpcard:  Gives low end monsters no regen if set to 0 in database. Should make low end monsters killable
+	//Might want to lower this to /5 rather than 10.
+	if(hp_regen == 0)
+	{
+		if(GetLevel() <= 6)  
+            hp_regen = 1;  
+       else if(GetLevel() > 6 && GetLevel() <= 10)  
+            hp_regen = 2;  
+       else if(GetLevel() > 10 && GetLevel() <= 15)  
+            hp_regen = 3;  
+       else if(GetLevel() > 15 && GetLevel() <= 20)  
+            hp_regen = 5;  
+       else if(GetLevel() > 20 && GetLevel() <= 30)  
+            hp_regen = 7;  
+       else if(GetLevel() > 30 && GetLevel() <= 35)  
+            hp_regen = 9;  
+       else if(GetLevel() > 35 && GetLevel() <= 40)  
+            hp_regen = 12;  
+       else if(GetLevel() > 40 && GetLevel() <= 45)  
+            hp_regen = 18;  
+       else if(GetLevel() > 45 && GetLevel() <= 50)  
+            hp_regen = 21;  
+       else
+            hp_regen = 30;
+	} else if(hp_regen < 0) {
+		hp_regen = 0;
+	} else
+		hp_regen = d->hp_regen;
 
 	//quick fix of ordering if they screwed it up in the DB
 	if(max_dmg < min_dmg) {
@@ -251,6 +280,23 @@ NPC::NPC(const NPCType* d, Spawn2* in_respawn, float x, float y, float z, float 
     entity_list.MakeNameUnique(name);
 #endif
 
+	//Shin: This is for mobs in VZTZ that don't have resists set.
+    MR = d->MR;
+    CR = d->CR;
+    DR = d->DR;
+    FR = d->FR;
+    PR = d->PR;
+
+    if (!MR)
+        MR = (moblevel * 11)/10;
+    if (!CR)
+        CR = (moblevel * 11)/10;
+    if (!DR)
+        DR = (moblevel * 11)/10;
+    if (!FR)
+        FR = (moblevel * 11)/10;
+    if (!PR)
+        PR = (moblevel * 11)/10;
 	npc_aggro = d->npc_aggro;
 
 	AI_Start();

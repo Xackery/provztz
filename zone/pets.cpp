@@ -88,7 +88,7 @@ const char *GetRandPetName()
 		"Libann","Libantik","Libarer","Libarn","Libartik","Libeker","Libekn","Lobann",
 		"Lobarab","Lobarn","Lobartik","Lobekn","Lobn","Lobober","Lobobn","Lobtik",
 		"Lonaner","Lonann","Lonantik","Lonarab","Lonarer","Lonarn","Lonartik","Lonekn",
-		"Loner","Lonobtik","Lontik","Vabanab","Vabaner","Vabann","Vabantik","Vabarer",
+		"Loner","Lonobtik","Lontik","Steve","Vabanab","Vabaner","Vabann","Vabantik","Vabarer",
 		"Vabarn","Vabartik","Vabeker","Vabekn","Vabtik","Vanikk","Vann","Varartik","Varn",
 		"Vartik","Vasann","Vasantik","Vasarab","Vasarer","Vaseker","Vebaner","Vebantik",
 		"Vebarab","Vebeker","Vebekn","Vebobn","Vekab","Veker","Venaner","Venantik","Venar",
