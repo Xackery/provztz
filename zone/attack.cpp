@@ -167,10 +167,11 @@ bool Mob::CheckHitChance(Mob* other, SkillType skillinuse, int Hand)
 	int8 defender_level = defender->GetLevel() ? defender->GetLevel() : 1;
 
 	//Calculate the level difference
+
 	mlog(COMBAT__TOHIT, "Chance to hit before level diff calc %.2f", chancetohit);
 	double level_difference = attacker_level - defender_level;
 	double range = defender->GetLevel();
-	range = ((range / 4) + 3);	
+	range = ((range / 4) + 3);
 
 	if(level_difference < 0)
 	{
@@ -211,13 +212,13 @@ bool Mob::CheckHitChance(Mob* other, SkillType skillinuse, int Hand)
 			chancetohit -= (RuleR(Combat,WeaponSkillFalloff) * (attacker->CastToClient()->MaxSkill(skillinuse) - attacker->GetSkill(skillinuse)));
 			mlog(COMBAT__TOHIT, "Chance to hit after weapon falloff calc (attack) %.2f", chancetohit);
 		}
-
-		if(defender->IsClient())
-		{
-			chancetohit += (RuleR(Combat,WeaponSkillFalloff) * (defender->CastToClient()->MaxSkill(DEFENSE) - defender->GetSkill(DEFENSE)));
-			mlog(COMBAT__TOHIT, "Chance to hit after weapon falloff calc (defense) %.2f", chancetohit);
-		}
 	}
+	if(defender->IsClient())
+	{
+		chancetohit += (RuleR(Combat,WeaponSkillFalloff) * (defender->CastToClient()->MaxSkill(DEFENSE) - defender->GetSkill(DEFENSE)));
+		mlog(COMBAT__TOHIT, "Chance to hit after weapon falloff calc (defense) %.2f", chancetohit);
+	}
+
 	//I dont think this is 100% correct, but at least it does something...
 	if(attacker->spellbonuses.MeleeSkillCheckSkill == skillinuse || attacker->spellbonuses.MeleeSkillCheckSkill == 255) {
 		chancetohit += attacker->spellbonuses.MeleeSkillCheck;
@@ -328,13 +329,14 @@ bool Mob::CheckHitChance(Mob* other, SkillType skillinuse, int Hand)
 	//
 	// Did we hit?
 	//
-	
+
 	float tohit_roll = MakeRandomFloat(0, 100);
 	attacker->Message(0, "Hit Chance: %f", chancetohit); //Shin: Debug message.
 	mlog(COMBAT__TOHIT, "Final hit chance: %.2f%%. Hit roll %.2f", chancetohit, tohit_roll);
 	
 	return(tohit_roll <= chancetohit);
 }
+
 
 bool Mob::AvoidDamage(Mob* other, sint32 &damage)
 {
@@ -374,8 +376,8 @@ bool Mob::AvoidDamage(Mob* other, sint32 &damage)
 	if (damage > 0 && CanThisClassRiposte() && !other->BehindMob(this, other->GetX(), other->GetY()))
 	{
         skill = GetSkill(RIPOSTE);
-		if (IsClient()) { 
-			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN ) //Shin: If PvP, and not green.
+		if (IsClient()) { //Shin: If PvP, and not green.
+			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN ) 
 				CastToClient()->CheckIncreaseSkill(RIPOSTE, other, -10);
 		}
 		
@@ -462,8 +464,8 @@ bool Mob::AvoidDamage(Mob* other, sint32 &damage)
 	if (damage > 0 && CanThisClassParry() && !other->BehindMob(this, other->GetX(), other->GetY()))
 	{
         skill = CastToClient()->GetSkill(PARRY);
-		if (IsClient()) {
-			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN ) //Shin: If PvP, and not green.
+		if (IsClient()) {  //Shin: If PvP, and not green.
+			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN )
 			CastToClient()->CheckIncreaseSkill(PARRY, other, -10); 
 		}
 		
@@ -484,8 +486,8 @@ bool Mob::AvoidDamage(Mob* other, sint32 &damage)
 	{
 	
         skill = CastToClient()->GetSkill(DODGE);
-		if (IsClient()) {
-			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN ) //Shin: If PvP, and not green.
+		if (IsClient()) { //Shin: If PvP, and not green.
+			if (!other->IsClient() && GetLevelCon(other->GetLevel()) != CON_GREEN ) 
 				CastToClient()->CheckIncreaseSkill(DODGE, other, -10);
 		}
 		
@@ -1335,7 +1337,7 @@ void Client::Damage(Mob* other, sint32 damage, int16 spell_id, SkillType attack_
 	CommonDamage(other, damage, spell_id, attack_skill, avoidable, buffslot, iBuffTic);
 	
 	if (damage > 0) 
-	{//if the other is not green, and this is not a spell
+	{ //Shin: if the other is not green, and this is not a spell
 		if (other && other->IsNPC() && (spell_id == SPELL_UNKNOWN) && GetLevelCon(other->GetLevel()) != CON_GREEN )
 			CheckIncreaseSkill(DEFENSE, other, -10);
 		if (spell_id == SPELL_UNKNOWN)

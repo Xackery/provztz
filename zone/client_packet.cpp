@@ -963,8 +963,8 @@ void Client::CheatDetected(CheatTypes CheatType, float x, float y, float z)
 	switch (CheatType)
 	{
 		case MQWarp://Some zones have serious issues, turning off warp flags for these zones.
-			if(RuleB(Zone, EnableMQWarpDetector)
-				&& ((this->Admin() < RuleI(Zone, MQWarpExemptStatus)
+			if(RuleB(Zone, EnableMQWarpDetector) 
+				&& ((this->Admin() < RuleI(Zone, MQWarpExemptStatus) 
 				|| (RuleI(Zone, MQWarpExemptStatus)) == -1)))
 			{
 				Message(13, "Large warp detected.");
@@ -986,8 +986,8 @@ void Client::CheatDetected(CheatTypes CheatType, float x, float y, float z)
 			}
 			break;
 		case MQWarpShadowStep:
-			if(RuleB(Zone, EnableMQWarpDetector)
-				&& ((this->Admin() < RuleI(Zone, MQWarpExemptStatus)
+			if(RuleB(Zone, EnableMQWarpDetector) 
+				&& ((this->Admin() < RuleI(Zone, MQWarpExemptStatus) 
 				|| (RuleI(Zone, MQWarpExemptStatus)) == -1)))
 			{
 				char *hString = NULL;
@@ -997,8 +997,8 @@ void Client::CheatDetected(CheatTypes CheatType, float x, float y, float z)
 			}
 			break;
 		case MQWarpKnockBack:
-			if(RuleB(Zone, EnableMQWarpDetector)
-				&& ((this->Admin() < RuleI(Zone, MQWarpExemptStatus)
+			if(RuleB(Zone, EnableMQWarpDetector) 
+				&& ((this->Admin() < RuleI(Zone, MQWarpExemptStatus) 
 				|| (RuleI(Zone, MQWarpExemptStatus)) == -1)))
 			{
 				char *hString = NULL;
@@ -1009,8 +1009,8 @@ void Client::CheatDetected(CheatTypes CheatType, float x, float y, float z)
 			break;
 
 		case MQWarpLight:
-			if(RuleB(Zone, EnableMQWarpDetector)
-				&& ((this->Admin() < RuleI(Zone, MQWarpExemptStatus)
+			if(RuleB(Zone, EnableMQWarpDetector) 
+				&& ((this->Admin() < RuleI(Zone, MQWarpExemptStatus) 
 				|| (RuleI(Zone, MQWarpExemptStatus)) == -1)))
 			{
 				char *hString = NULL;
@@ -1019,6 +1019,7 @@ void Client::CheatDetected(CheatTypes CheatType, float x, float y, float z)
 				safe_delete_array(hString);
 			}
 			break;
+
 		case MQZone:
 			if(!( (zone->GetZoneID()==31)/*sola*/ || (zone->GetZoneID()==32)/*solb*/ || (zone->GetZoneID()==25)/*nek*/ || (zone->GetZoneID()==27)/*lava*/ ) && (RuleB(Zone, EnableMQZoneDetector))&& ((this->Admin() < RuleI(Zone, MQZoneExemptStatus) || (RuleI(Zone, MQZoneExemptStatus)) == -1))) //Lieka:  Exempt these zones from the MQZone detector (This may be depricated now, but were problems in the past)
 			{
@@ -1133,7 +1134,7 @@ void Client::Handle_OP_ClientUpdate(const EQApplicationPacket *app)
 	dist = sqrt(dist);
 
 	//the purpose of this first block may not be readily apparent
-	//basically it's so people don't do a moderate warp every 2.5 seconds
+	//basically it's so people don't do a moderate warp every 2.5 seconds 
 	//letting it even out and basically getting the job done without triggering
 	if(dist == 0)
 	{
@@ -1157,7 +1158,7 @@ void Client::Handle_OP_ClientUpdate(const EQApplicationPacket *app)
 						}
 						else if(IsKnockBackExempted())
 						{
-							//still potential to trigger this if you're knocked back off a
+							//still potential to trigger this if you're knocked back off a 
 							//HUGE fall that takes > 2.5 seconds
 							if(speed > 30.0f)
 							{
@@ -1197,7 +1198,7 @@ void Client::Handle_OP_ClientUpdate(const EQApplicationPacket *app)
 			m_CheatDetectMoved = false;
 		}
 	}
-    else
+	else
 	{
 		m_DistanceSinceLastPositionCheck += dist;
 		m_CheatDetectMoved = true;
@@ -1229,7 +1230,7 @@ void Client::Handle_OP_ClientUpdate(const EQApplicationPacket *app)
 						}
 						else if(IsKnockBackExempted())
 						{
-							//still potential to trigger this if you're knocked back off a
+							//still potential to trigger this if you're knocked back off a 
 							//HUGE fall that takes > 2.5 seconds
 							if(speed > 30.0f)
 							{
@@ -1263,6 +1264,7 @@ void Client::Handle_OP_ClientUpdate(const EQApplicationPacket *app)
 			}
 		}
 	}
+
 	//Lieka:  Check to see if PPU should trigger an update to the rewind position.
 	float rewind_x_diff = 0;
 	float rewind_y_diff = 0;
@@ -1452,7 +1454,7 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 	// For /target, send reject or success packet
 	if (app->GetOpcode() == OP_TargetCommand) {
 		if (GetTarget() && !GetTarget()->CastToMob()->IsInvisible(this) && DistNoRoot(*GetTarget()) <= TARGETING_RANGE*TARGETING_RANGE) {
-			if(GetTarget()->GetBodyType() == BT_NoTarget2 || GetTarget()->GetBodyType() == BT_Special
+			if(GetTarget()->GetBodyType() == BT_NoTarget2 || GetTarget()->GetBodyType() == BT_Special 
 				|| GetTarget()->GetBodyType() == BT_NoTarget)
 			{
 				//Targeting something we shouldn't with /target
@@ -1470,7 +1472,7 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 				safe_delete(outapp);
 				return;
 			}
-
+			
 			QueuePacket(app);
 			EQApplicationPacket hp_app;
 			GetTarget()->IsTargeted(1);
@@ -1491,10 +1493,10 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 		}
 	}
 	else
-    {
+	{
 		if(GetTarget())
 		{
-			if(GetTarget()->GetBodyType() == BT_NoTarget2 || GetTarget()->GetBodyType() == BT_Special
+			if(GetTarget()->GetBodyType() == BT_NoTarget2 || GetTarget()->GetBodyType() == BT_Special 
 				|| GetTarget()->GetBodyType() == BT_NoTarget)
 			{
 				char *hacker_str = NULL;
@@ -7433,7 +7435,6 @@ bool Client::FinishConnState2(DBAsyncWork* dbaw) {
 	drakkin_tattoo		= m_pp.drakkin_tattoo;
 	drakkin_details		= m_pp.drakkin_details;
 
-
 	//if we zone in with invalid Z, fix it.
 	if (zone->zonemap != NULL) {
 
@@ -9017,22 +9018,13 @@ void Client::Handle_OP_Translocate(const EQApplicationPacket *app) {
 		EQApplicationPacket* outapp = new EQApplicationPacket(OP_Translocate, sizeof(Translocate_Struct));
 		Translocate_Struct *ots = (Translocate_Struct*)outapp->pBuffer;
 		memcpy(ots, &PendingTranslocateData, sizeof(Translocate_Struct));
-		ots->Complete = 1;
-
-
-		zonesummon_x = ots->x;
-		zonesummon_y = ots->y;
-		zonesummon_z = ots->z;
-		zonesummon_id = ots->ZoneID;
-		zone_mode = ZoneSolicited;
-
-		QueuePacket(outapp);
-		safe_delete(outapp);
+		
+		//Was sending the packet back to initiate client zone... 
+		//but that could be abusable, so lets go through proper channels
+		MovePC(ots->ZoneID, 0, ots->x, ots->y, ots->z, GetHeading(), 0, ZoneSolicited);
 	}
 
 	PendingTranslocate = false;
-
-
 }
 
 void Client::Handle_OP_Sacrifice(const EQApplicationPacket *app) {

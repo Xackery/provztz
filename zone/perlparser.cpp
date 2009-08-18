@@ -87,23 +87,9 @@ void PerlXSParser::map_funs() {
 	"package QuestItem;"
 	"&boot_QuestItem;"	// load quest item XS
 
-	"package MobList;"
-	"&boot_MobList;"	// load MobList XS
-
-	"package ClientList;"
-	"&boot_ClientList;"	// load ClientList XS
-
-	"package NPCList;"
-	"&boot_NPCList;"	// load NPCList XS
-
-	"package CorpseList;"
-	"&boot_CorpseList;"	// load CorpseList XS
-
 	"package HateEntry;"
-	"&boot_HateEntry;"	// load HateEntry XS
+	"&boot_HateEntry;"	// load quest item XS
 
-	"package HateList;"
-	"&boot_HateList;"	// load HateList XS
 #endif
 	"package main;"
 	"}"
@@ -249,9 +235,10 @@ XS(XS_QuestItem_new)
 
 	XSRETURN(1);
 }
+
 //Any creation of new quest items gets the current quest item
 XS(XS_MobList_new);
-XS(XS_MobList_new)
+XS(XS_MobList_new) 
 {
 	dXSARGS;
 	if (items != 1)
@@ -408,6 +395,7 @@ XS(XS__unique_spawn)
 
 	XSRETURN(1);
 }
+
 XS(XS__spawn_from_spawn2);
 XS(XS__spawn_from_spawn2)
 {
@@ -2883,6 +2871,9 @@ EXTERN_C XS(boot_quest)
 		newXS(strcpy(buf, "spawn"), XS__spawn, file);
 		newXS(strcpy(buf, "spawn2"), XS__spawn2, file);
 		newXS(strcpy(buf, "unique_spawn"), XS__unique_spawn, file);
+		newXS(strcpy(buf, "spawn_from_spawn2"), XS__spawn_from_spawn2, file);
+		newXS(strcpy(buf, "enable_spawn2"), XS__enable_spawn2, file);
+		newXS(strcpy(buf, "disable_spawn2"), XS__disable_spawn2, file);
 		newXS(strcpy(buf, "setstat"), XS__setstat, file);
 		newXS(strcpy(buf, "incstat"), XS__incstat, file);
 		newXS(strcpy(buf, "castspell"), XS__castspell, file);

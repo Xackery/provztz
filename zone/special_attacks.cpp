@@ -31,7 +31,7 @@ int Mob::GetKickDamage() const {
 	int multiple=(GetLevel()*100/5);
 	multiple += 100;
 	int dmg=(
-			    (
+			    ( //Shin: Str /2 for this
 				 (GetSkill(KICK) + (GetSTR()/2) + GetLevel())*100 / 9000
 				) * multiple
 			  )
@@ -200,7 +200,7 @@ void Client::OPCombatAbility(const EQApplicationPacket *app) {
 	if ((ca_atk->m_atk == 100) 
 	  && (ca_atk->m_skill == BASH)) {    // SLAM - Bash without a shield equipped
 		if (GetTarget() != this) {
-			if(!GetTarget()->IsClient())	 //Shin: Dont skill up vs players
+			if(!GetTarget()->IsClient()) //Shin: Dont skill up vs players
 				CheckIncreaseSkill(BASH, GetTarget(), 10);
 			DoAnim(animTailRake);
 
@@ -398,7 +398,7 @@ int Mob::MonkSpecialAttack(Mob* other, int8 unchecked_type)
 		break;
 		}
 	case DRAGON_PUNCH:{
-		skill_type = DRAGON_PUNCH;
+		skill_type = DRAGON_PUNCH; //Shin: Str /2 for this
 		max_dmg = (((GetSTR()/2)+GetSkill(skill_type)) * RuleI(Combat, DragonPunchBonus) / 100) + 26;
 		itemslot = SLOT_HANDS;
 
@@ -408,7 +408,7 @@ int Mob::MonkSpecialAttack(Mob* other, int8 unchecked_type)
 		}
 
 	case EAGLE_STRIKE:{
-		skill_type = EAGLE_STRIKE;
+		skill_type = EAGLE_STRIKE; //Shin: Str /2 for this
 		max_dmg = (((GetSTR()/2)+GetSkill(skill_type)) * RuleI(Combat, EagleStrikeBonus) / 100) + 19;
 		itemslot = SLOT_HANDS;
 
@@ -418,7 +418,7 @@ int Mob::MonkSpecialAttack(Mob* other, int8 unchecked_type)
 		}
 
 	case TIGER_CLAW:{
-		skill_type = TIGER_CLAW;
+		skill_type = TIGER_CLAW; //Shin: Str /2 for this
 		max_dmg = (((GetSTR()/2)+GetSkill(skill_type)) * RuleI(Combat, TigerClawBonus) / 100) + 12;
 		itemslot = SLOT_HANDS;
 
@@ -428,7 +428,7 @@ int Mob::MonkSpecialAttack(Mob* other, int8 unchecked_type)
 		}
 
 	case ROUND_KICK:{
-		skill_type = ROUND_KICK;
+		skill_type = ROUND_KICK; //Shin: Str /2 for this
 		max_dmg = (((GetSTR()/2)+GetSkill(skill_type)) * RuleI(Combat, RoundKickBonus) / 100) + 10;
 
 		DoAnim(animRoundKick);

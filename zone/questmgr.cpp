@@ -274,6 +274,7 @@ int16 QuestManager::unique_spawn(int npc_type, int grid, int unused, float x, fl
 	}
 	return(0);
 }
+
 int16 QuestManager::spawn_from_spawn2(int32 spawn2_id)
 {
 	LinkedListIterator<Spawn2*> iterator(zone->spawn2_list);
@@ -317,7 +318,7 @@ int16 QuestManager::spawn_from_spawn2(int32 spawn2_id)
 
 		if(tmp->spawn_limit > 0)
 		{
-			if(!entity_list.LimitCheckType(npcid, tmp->spawn_limit))
+			if(!entity_list.LimitCheckType(npcid, tmp->spawn_limit)) 
 			{
 				return 0;
 			}
@@ -326,7 +327,7 @@ int16 QuestManager::spawn_from_spawn2(int32 spawn2_id)
 		database.UpdateSpawn2Timeleft(spawn2_id, zone->GetInstanceID(), 0);
 		found_spawn->SetCurrentNPCID(npcid);
 
-		NPC* npc = new NPC(tmp, found_spawn, found_spawn->GetX(), found_spawn->GetY(), found_spawn->GetZ(),
+		NPC* npc = new NPC(tmp, found_spawn, found_spawn->GetX(), found_spawn->GetY(), found_spawn->GetZ(), 
 			found_spawn->GetHeading(), FlyMode3);
 
 		found_spawn->SetNPCPointer(npc);
@@ -337,7 +338,7 @@ int16 QuestManager::spawn_from_spawn2(int32 spawn2_id)
 
 		if(sg->roamdist && sg->roambox[0] && sg->roambox[1] && sg->roambox[2] && sg->roambox[3] && sg->delay)
 			npc->AI_SetRoambox(sg->roamdist,sg->roambox[0],sg->roambox[1],sg->roambox[2],sg->roambox[3],sg->delay);
-		if(zone->InstantGrids())
+		if(zone->InstantGrids()) 
 		{
 			found_spawn->LoadGrid();
 		}

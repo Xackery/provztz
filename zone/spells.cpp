@@ -821,8 +821,8 @@ void Mob::CastedSpellFinished(int16 spell_id, int32 target_id, int16 slot, int16
 			float channelchance, distance_moved, d_x, d_y, distancemod;
 			int myClass = this->GetClass(); //Shin: Get class for channel check
 			if(IsClient())
-			{
-				if(myClass != 1 && myClass != 7 && myClass != 9) { //Shin: Non-Melee formula
+			{ //Shin: Non-Melee formula
+				if(myClass != 1 && myClass != 7 && myClass != 9) { 
 					// max 93% chance at 252 skill
 					channelchance = 30 + GetSkill(CHANNELING) / 400.0f * 100;
 					channelchance -= attacked_count * 2; //Shin: This is 1.5 on VZTZ
@@ -1053,8 +1053,8 @@ void Mob::CastedSpellFinished(int16 spell_id, int32 target_id, int16 slot, int16
 			this->CastToClient()->CheckSongSkillIncrease(spell_id);
 		}
 		// go again in 6 seconds
-    //this is handled with bardsong_timer
-    //		DoCastSpell(casting_spell_id, casting_spell_targetid, casting_spell_slot, 6000, casting_spell_mana);
+		//this is handled with bardsong_timer
+		//		DoCastSpell(casting_spell_id, casting_spell_targetid, casting_spell_slot, 6000, casting_spell_mana);
 
 		mlog(SPELLS__CASTING, "Bard song %d should be started", spell_id);
 	}
@@ -1078,8 +1078,8 @@ void Mob::CastedSpellFinished(int16 spell_id, int32 target_id, int16 slot, int16
 				
 				// increased chance of gaining channel skill if you regained concentration
 				c->CheckIncreaseSkill(CHANNELING, NULL, regain_conc ? 5 : 0);
-
-				c->CheckSpecializeIncrease(spell_id);
+				
+				c->CheckSpecializeIncrease(spell_id);	
 			}
 		}
 
@@ -1888,8 +1888,8 @@ void Mob::BardPulse(uint16 spell_id, Mob *caster) {
 				if(IsClient())
 				{
 					if(HasBuffIcon(caster, this, spell_id) == false)
-					{
-        				CastToClient()->SetKnockBackExemption(true); //Shin: This may need to be removed to keep KD.
+					{ //Shin: This may need to be removed to keep KD.
+        				CastToClient()->SetKnockBackExemption(true); 
 
 						action->buff_unknown = 0;
 						EQApplicationPacket* outapp_push = new EQApplicationPacket(OP_ClientUpdate, sizeof(PlayerPositionUpdateServer_Struct));
@@ -2592,7 +2592,7 @@ bool Mob::SpellOnTarget(int16 spell_id, Mob* spelltar)
 	action->sequence = (int32) (GetHeading() * 2);	// just some random number
 	action->instrument_mod = GetInstrumentMod(spell_id);
 	action->buff_unknown = 0;
-
+	
 	if(spelltar->IsClient())	// send to target
 		spelltar->CastToClient()->QueuePacket(action_packet);
 	if(IsClient())	// send to caster
@@ -2753,7 +2753,7 @@ bool Mob::SpellOnTarget(int16 spell_id, Mob* spelltar)
 		if(spell_effectiveness < 100)
 		{
 			//if(spell_effectiveness == 0 || !IsPartialCapableSpell(spell_id) )
-			if(spell_effectiveness == 0) //Lieka:  Placed back to fix the resist code. Shin: This is part of VZTZ partial resist
+			if(spell_effectiveness == 0) //Shin: This is part of VZTZ partial resist, Lieka:  Placed back to fix the resist code. 
 			{
 				mlog(SPELLS__RESISTS, "Spell %d was completely resisted by %s", spell_id, spelltar->GetName());
 				Message_StringID(MT_Shout, TARGET_RESISTED, spells[spell_id].name);
@@ -2915,7 +2915,7 @@ bool Mob::SpellOnTarget(int16 spell_id, Mob* spelltar)
 		{
 			if(HasBuffIcon(this, spelltar, spell_id) == false)
 			{
-				CastToClient()->SetKnockBackExemption(true);
+				spelltar->CastToClient()->SetKnockBackExemption(true);
 
 				action->buff_unknown = 0;
 				EQApplicationPacket* outapp_push = new EQApplicationPacket(OP_ClientUpdate, sizeof(PlayerPositionUpdateServer_Struct));
@@ -2952,6 +2952,10 @@ bool Mob::SpellOnTarget(int16 spell_id, Mob* spelltar)
 		}
 	}
 
+	if(spelltar->IsClient() && IsEffectInSpell(spell_id, SE_ShadowStep))
+	{
+		spelltar->CastToClient()->SetShadowStepExemption(true);
+	}
 
 	if(!IsEffectInSpell(spell_id, SE_BindAffinity))
 	{
@@ -3581,9 +3585,9 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 	high the partial should be, for example if we rolled barely over the full resist chance line then it would result in a low partial but if we barely missed the spell not resisting then it would result in a very high partial
 	The higher the resist the larger this range will be.
 	[[[Space below the full resist chance line]]] - If the roll ends up down here then the spell was resisted fully, the higher the resist the larger this range will be.
-	
+	*/
 
-	default 0.40: 500 resist = 200% Base resist while 40 resist = 16% resist base.
+	/*default 0.40: 500 resist = 200% Base resist while 40 resist = 16% resist base.
 	Set ResistMod lower to require more resist points per percentage point of resistance.
 	resistchance += resist * RuleR(Spells, ResistMod); 
 	resistchance += spellbonuses.ResistSpellChance + itembonuses.ResistSpellChance;
@@ -3595,8 +3599,8 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 			sint32 focusResist = caster->CastToClient()->GetFocusEffect(focusResistRate, spell_id);
 			resistchance = (resistchance * (100-focusResist) / 100);
 		}
-	}*/
-/*
+	}
+
 
 #ifdef EQBOTS
 
@@ -3640,9 +3644,8 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 			mlog(SPELLS__RESISTS, "Spell %d: Roll of %.2f > fullchance %.2f, partially resisted, returned %.2f", spell_id, roll, fullchance, (100 * ((roll-fullchance)/(resistchance-fullchance))));
 			//Remove the lower range so it doesn't throw off the proportion.
 			return(100 * ((roll-fullchance)/(resistchance-fullchance)));
-		} */
+			*/	} 
 	 }
-}
 
 float Mob::GetAOERange(uint16 spell_id) {
 	float range;

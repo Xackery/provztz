@@ -1131,7 +1131,7 @@ void Corpse::LootItem(Client* client, const EQApplicationPacket* app)
 				}
 			}
 		}
-		lootcorpse = false; //Allow another item to be looted.
+		lootcorpse = false; //Shin: Allow another item to be looted.
 		if(GetPKItem()!=-1)
 			SetPKItem(0);
 		

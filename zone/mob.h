@@ -823,8 +823,9 @@ bool logpos;
 	void				RemoveFromFeignMemory(Client* attacker);
 	void				ClearFeignMemory();
 	void				PrintHateListToClient(Client *who) { hate_list.PrintToClient(who); }
-	//for accessing hate list from perl only, don't use for other purposes.
-	ListElement<tHateEntry*> *GetHateListElement() { return hate_list.GetHateListElement(); }
+
+	std::list<tHateEntry*> GetHateList() { return hate_list.GetHateList(); }
+
 
 	int					GetCurWp(){ return cur_wp; }
 
@@ -916,6 +917,7 @@ bool logpos;
 	inline float GetCWPP() const { return(cur_wp_pause); }
 	inline int GetCWP() const { return(cur_wp); }
 	virtual FACTION_VALUE GetReverseFactionCon(Mob* iOther) { return FACTION_INDIFFERENT; }
+	
 	inline bool IsTrackable() const { return(trackable); }
 	inline bool HasRune() const { return m_hasRune; }
 	inline bool HasSpellRune() const { return m_hasSpellRune; }

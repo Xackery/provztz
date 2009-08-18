@@ -619,8 +619,7 @@ struct SPDat_Spell_Struct
 	#define SPDAT_RECORDS	3602
 #endif
 
-
-bool IsDispellSpell(int16 spell_id);
+bool IsDispellSpell(int16 spell_id); //Shin: Added for PvP
 bool IsTargetableAESpell(int16 spell_id);
 bool IsSacrificeSpell(int16 spell_id);
 bool IsLifetapSpell(int16 spell_id);

@@ -115,13 +115,13 @@ void Client::Handle_OP_ZoneChange(const EQApplicationPacket *app) {
 				SendZoneCancel(zc);
 				return;
 			}
-			
+
 			zone_point = zone->GetClosestZonePoint(GetX(), GetY(), GetZ(), target_zone_id, ZONEPOINT_ZONE_RANGE);
 			//if we didnt get a zone point, or its to a different zone,
 			//then we assume this is invalid.
 			if(!zone_point || zone_point->target_zone_id != target_zone_id) {
 				LogFile->write(EQEMuLog::Error, "Zoning %s: Invalid unsolicited zone request to zone id '%d'.", GetName(), target_zone_id);
-				CheatDetected(MQGate, zc->x, zc->y, zc->z);
+				CheatDetected(MQGate, zc->x, zc->y, zc->z);				
 				SendZoneCancel(zc);
 				return;
 			}
@@ -246,8 +246,8 @@ void Client::Handle_OP_ZoneChange(const EQApplicationPacket *app) {
 		//for now, there are no other cases...
 		
 		//could not find a valid reason for them to be zoning, stop it.
-        CheatDetected(MQGate, zc->x, zc->y, zc->z);
-        LogFile->write(EQEMuLog::Error, "Zoning %s: Invalid unsolicited zone request to zone id '%s'. Not near a zone point.", GetName(), target_zone_name);
+		CheatDetected(MQZoneUnknownDest, 0.0, 0.0, 0.0);
+		LogFile->write(EQEMuLog::Error, "Zoning %s: Invalid unsolicited zone request to zone id '%s'. Not near a zone point.", GetName(), target_zone_name);
 		SendZoneCancel(zc);
 		return;
 	};
@@ -260,14 +260,14 @@ void Client::Handle_OP_ZoneChange(const EQApplicationPacket *app) {
 	//not sure when we would use ZONE_ERROR_NOTREADY
 
 	//enforce min status and level
-	if (!ignorerestrictions && (Admin() < minstatus || GetLevel() < minlevel))
+	if (!ignorerestrictions && (Admin() < minstatus || GetLevel() < minlevel)) 
 	{
 		myerror = ZONE_ERROR_NOEXPERIENCE;
 	}
 	
 	if(!ignorerestrictions && flag_needed[0] != '\0') {
 		//the flag needed string is not empty, meaning a flag is required.
-		if(Admin() < minStatusToIgnoreZoneFlags && !HasZoneFlag(target_zone_id))
+		if(Admin() < minStatusToIgnoreZoneFlags && !HasZoneFlag(target_zone_id)) 
 		{
 			Message(13, "You must have the flag %s to enter this zone.");
 			myerror = ZONE_ERROR_NOEXPERIENCE;
@@ -303,7 +303,7 @@ void Client::SendZoneCancel(ZoneChange_Struct *zc) {
 	zone_mode = ZoneUnsolicited;
 }
 
-void Client::SendZoneError(ZoneChange_Struct *zc, sint8 err)
+void Client::SendZoneError(ZoneChange_Struct *zc, sint8 err) 
 {
 	LogFile->write(EQEMuLog::Error, "Zone %i is not available because target wasn't found or character insufficent level", zc->zoneID);
 	
@@ -337,8 +337,7 @@ void Client::DoZoneSuccess(ZoneChange_Struct *zc, uint16 zone_id, int32 instance
 	LogFile->write(EQEMuLog::Status, "Zoning '%s' to: %s (%i) - (%i) x=%f, y=%f, z=%f",
 		m_pp.name, database.GetZoneName(zone_id), zone_id, instance_id,
 		dest_x, dest_y, dest_z);
-	
-	
+
 	//set the player's coordinates in the new zone so they have them
 	//when they zone into it
 	x_pos = dest_x; //these coordinates will now be saved when ~client is called
@@ -385,6 +384,11 @@ void Client::DoZoneSuccess(ZoneChange_Struct *zc, uint16 zone_id, int32 instance
 	
 	//reset to unsolicited.
 	zone_mode = ZoneUnsolicited;
+	zonesummon_x = 0;
+	zonesummon_y = 0;
+	zonesummon_z = 0;
+	zonesummon_id = 0;
+	zonesummon_ignorerestrictions = 0;
 }
 
 void Client::MovePC(const char* zonename, float x, float y, float z, float heading, int8 ignorerestrictions, ZoneMode zm) {
@@ -538,7 +542,6 @@ void Client::ZonePC(int32 zoneID, int32 instance_id, float x, float y, float z, 
 
 	if(ReadyToZone) {
 		zone_mode = zm;
-		
 		if(zm == ZoneToBindPoint) {
 			EQApplicationPacket* outapp = new EQApplicationPacket(OP_ZonePlayerToBind, sizeof(ZonePlayerToBind_Struct) + iZoneNameLength);
 			ZonePlayerToBind_Struct* gmg = (ZonePlayerToBind_Struct*) outapp->pBuffer;
@@ -636,6 +639,18 @@ void Client::ZonePC(int32 zoneID, int32 instance_id, float x, float y, float z, 
 		}
 
 		LogFile->write(EQEMuLog::Debug, "Player %s has requested a zoning to LOC x=%f, y=%f, z=%f, heading=%f in zoneid=%i", GetName(), x, y, z, heading, zoneID);
+		//Clear zonesummon variables if we're zoning to our own zone
+		//Client wont generate a zone change packet to the server in this case so
+		//They aren't needed and it keeps behavior on next zone attempt from being undefined.
+		if(zoneID == zone->GetZoneID() && instance_id == zone->GetInstanceID())
+		{
+			zonesummon_x = 0;
+			zonesummon_y = 0;
+			zonesummon_z = 0;
+			zonesummon_id = 0;
+			zonesummon_ignorerestrictions = 0;
+			zone_mode = ZoneUnsolicited;
+		}
 	}
 }
 
