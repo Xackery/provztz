@@ -1408,7 +1408,7 @@ void WorldServer::Process() {
 			}
 			break;
 		}
-		
+
 		default: {
 			cout << " Unknown ZSopcode:" << (int)pack->opcode;
 			cout << " size:" << pack->size << endl;

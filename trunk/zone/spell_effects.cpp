@@ -1428,8 +1428,8 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 			}
 
 			case SE_Root:
-			{
-				buffs[buffslot].ticsremaining = ((buffs[buffslot].ticsremaining * partial) / 100); //Shin: Partial system for root.
+			{ //Shin: Partial system for root.
+				buffs[buffslot].ticsremaining = ((buffs[buffslot].ticsremaining * partial) / 100); 
 #ifdef SPELL_EFFECT_SPAM
 				snprintf(effect_desc, _EDLEN, "Root: %+i", effect_value);
 #endif
@@ -3447,7 +3447,7 @@ void Mob::BuffFadeBySlot(int slot, bool iRecalcBonuses)
 				{
 					CastToClient()->SetBindSightTarget(NULL);
 				}
-				break;
+				break;			
 			}
 
 			case SE_MovementSpeed:
@@ -3475,7 +3475,7 @@ void Mob::BuffFadeBySlot(int slot, bool iRecalcBonuses)
 								}
 								else if(my_c->IsKnockBackExempted())
 								{
-									//still potential to trigger this if you're knocked back off a
+									//still potential to trigger this if you're knocked back off a 
 									//HUGE fall that takes > 2.5 seconds
 									if(speed > 30.0f)
 									{

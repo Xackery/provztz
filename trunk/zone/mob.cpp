@@ -501,7 +501,7 @@ float Mob::_GetMovementSpeed(int mod) const {
 	// http://everquest.allakhazam.com/db/item.html?item=1721;page=1;howmany=50#m10822246245352
 	if (IsRooted())
 		return 0.0f;
-		
+	
 	float aa_mod = 0.0f;
 	float speed_mod = 1.0f;
 	bool has_horse = false;
@@ -524,7 +524,7 @@ float Mob::_GetMovementSpeed(int mod) const {
 	}
 	
 	if (IsClient()){
-             aa_mod += ((CastToClient()->GetAA(aaInnateRunSpeed) * 0.10)
+            aa_mod += ((CastToClient()->GetAA(aaInnateRunSpeed) * 0.10)
 			+ (CastToClient()->GetAA(aaFleetofFoot) * 0.10)
 			+ (CastToClient()->GetAA(aaSwiftJourney) * 0.10)
 		);
@@ -544,6 +544,7 @@ float Mob::_GetMovementSpeed(int mod) const {
 		if(spell_mod < 0)
 			movemod += spell_mod;
 	}
+	
 	if(movemod < -85) //cap it at moving very very slow
 		movemod = -85;
 	
@@ -943,7 +944,7 @@ void Mob::SendPosUpdate(int8 iSendToSelf) {
 			move_tic_count++;
 		}
 #endif
-    }
+	}
 	safe_delete(app);
 }
 

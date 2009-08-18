@@ -218,7 +218,7 @@ public:
 	void	UpdateSpawn2Timeleft(int32 id, int16 instance_id,int32 timeleft);
 	int32	GetSpawnTimeLeft(int32 id, int16 instance_id);
 	void	UpdateSpawn2Status(int32 id, int8 new_status);
-
+	
 	/*
 	 * Grids/Paths
 	 */

@@ -81,7 +81,7 @@ Spawn2::Spawn2(int32 in_spawn2_id, int32 spawngroup_id,
 	grid_ = grid;
 	condition_id = in_cond_id;
 	condition_min_value = in_min_value;
-    npcthis = NULL;
+	npcthis = NULL;
 	enabled = in_enabled;
 	
 	if(timeleft == 0xFFFFFFFF) {
@@ -202,10 +202,10 @@ bool Spawn2::Process() {
 
 void Spawn2::Disable()
 {
-	if(npcthis)
+	if(npcthis)	
 	{
 		npcthis->Depop();
-	}
+	}  
 	enabled = false;
 }
 
@@ -279,17 +279,17 @@ bool ZoneDatabase::PopulateZoneSpawnList(int32 zoneid, LinkedList<Spawn2*> &spaw
 	const char *zone_name = database.GetZoneName(zoneid);
 
 	MakeAnyLenString(&query, "SELECT id, spawngroupID, x, y, z, heading, respawntime, variance, pathgrid, _condition, cond_value, enabled FROM spawn2 WHERE zone='%s' AND version=%u", zone_name, version);
-
+	
 	if (RunQuery(query, strlen(query), errbuf, &result))
 	{
 		safe_delete_array(query);
 		while((row = mysql_fetch_row(result)))
 		{
 			Spawn2* newSpawn = 0;
-
+			
 			bool perl_enabled = atoi(row[11]) == 1 ? true : false;
 			int32 spawnLeft = (GetSpawnTimeLeft(atoi(row[0]), zone->GetInstanceID()) * 1000);
-			newSpawn = new Spawn2(atoi(row[0]), atoi(row[1]), atof(row[2]), atof(row[3]), atof(row[4]), atof(row[5]), atoi(row[6]), atoi(row[7]), spawnLeft, atoi(row[8]), atoi(row[9]), atoi(row[10]), perl_enabled);
+			newSpawn = new Spawn2(atoi(row[0]), atoi(row[1]), atof(row[2]), atof(row[3]), atof(row[4]), atof(row[5]), atoi(row[6]), atoi(row[7]), spawnLeft, atoi(row[8]), atoi(row[9]), atoi(row[10]), perl_enabled);	
 			spawn2_list.Insert( newSpawn );
 		}
 		mysql_free_result(result);

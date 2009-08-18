@@ -581,7 +581,7 @@ bool NPC::Process()
     SpellProcess();
     
     if (tic_timer.Check()) 
-	{
+	{	
 		BuffProcess();
 		
 		if(curfp)

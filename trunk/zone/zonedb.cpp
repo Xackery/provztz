@@ -231,7 +231,7 @@ void ZoneDatabase::UpdateSpawn2Status(int32 id, int8 new_status)
 {
 	char errbuf[MYSQL_ERRMSG_SIZE];
     char *query = 0;
-
+	
 	if(!RunQuery(query, MakeAnyLenString(&query, "UPDATE spawn2 SET enabled=%i WHERE id=%lu", new_status, (unsigned long)id),errbuf))
 	{
 		LogFile->write(EQEMuLog::Error, "Error in UpdateSpawn2Status query %s: %s", query, errbuf);

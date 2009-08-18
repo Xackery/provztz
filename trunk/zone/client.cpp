@@ -270,7 +270,7 @@ Client::Client(EQStreamInterface* ieqs)
     PendingTranslocate = false;
 	PendingSacrifice = false;
 	BoatID = 0;
-	
+
 	KarmaUpdateTimer = new Timer(RuleI(Chat, KarmaUpdateIntervalMS));
 	GlobalChatLimiterTimer = new Timer(RuleI(Chat, IntervalDurationMS));
 	AttemptedMessages = 0;
@@ -286,6 +286,7 @@ Client::Client(EQStreamInterface* ieqs)
 	m_ShadowStepExemption = 0;
 	m_KnockBackExemption = 0;
 	m_PortExemption = 0;
+	m_CheatDetectMoved = false;
 }
 
 Client::~Client() {
@@ -1334,7 +1335,7 @@ void Client::UpdateWho(int8 remove) {
 	scl->instance_id = zone->GetInstanceID();
 	scl->race = this->GetRace();
 	scl->class_ = GetClass();
-	scl->level = GetLevel();	
+	scl->level = GetLevel();
 	if (m_pp.anon == 0)
 		scl->anon = 0;
 	else if (m_pp.anon == 1 && (Admin() >= 40))
@@ -4830,7 +4831,7 @@ void Client::ShowSkillsWindow()
 }
 
 
-void Client::SetShadowStepExemption(bool v)
+void Client::SetShadowStepExemption(bool v) 
 {
 	if(v == true)
 	{
@@ -4854,7 +4855,7 @@ void Client::SetShadowStepExemption(bool v)
 					}
 					else if(IsKnockBackExempted())
 					{
-						//still potential to trigger this if you're knocked back off a
+						//still potential to trigger this if you're knocked back off a 
 						//HUGE fall that takes > 2.5 seconds
 						if(speed > 30.0f)
 						{
@@ -4884,10 +4885,10 @@ void Client::SetShadowStepExemption(bool v)
 		m_TimeSinceLastPositionCheck = cur_time;
 		m_DistanceSinceLastPositionCheck = 0.0f;
 	}
-	m_ShadowStepExemption = v;
+	m_ShadowStepExemption = v; 
 }
 
-void Client::SetKnockBackExemption(bool v)
+void Client::SetKnockBackExemption(bool v) 
 {
 	if(v == true)
 	{
@@ -4911,7 +4912,7 @@ void Client::SetKnockBackExemption(bool v)
 					}
 					else if(IsKnockBackExempted())
 					{
-						//still potential to trigger this if you're knocked back off a
+						//still potential to trigger this if you're knocked back off a 
 						//HUGE fall that takes > 2.5 seconds
 						if(speed > 30.0f)
 						{
@@ -4941,10 +4942,10 @@ void Client::SetKnockBackExemption(bool v)
 		m_TimeSinceLastPositionCheck = cur_time;
 		m_DistanceSinceLastPositionCheck = 0.0f;
 	}
-	m_KnockBackExemption = v;
+	m_KnockBackExemption = v; 
 }
 
-void Client::SetPortExemption(bool v)
+void Client::SetPortExemption(bool v) 
 {
 	if(v == true)
 	{
@@ -4968,7 +4969,7 @@ void Client::SetPortExemption(bool v)
 					}
 					else if(IsKnockBackExempted())
 					{
-						//still potential to trigger this if you're knocked back off a
+						//still potential to trigger this if you're knocked back off a 
 						//HUGE fall that takes > 2.5 seconds
 						if(speed > 30.0f)
 						{
@@ -4998,7 +4999,7 @@ void Client::SetPortExemption(bool v)
 		m_TimeSinceLastPositionCheck = cur_time;
 		m_DistanceSinceLastPositionCheck = 0.0f;
 	}
-	m_PortExemption = v;
+	m_PortExemption = v; 
 }
 
 void Client::Signal(int32 data)
@@ -5079,14 +5080,14 @@ const bool Client::IsMQExemptedArea(int32 zoneID, float x, float y, float z) con
 	case 62:
 	case 75:
 	{
-		//The portals are so common in paineel/felwitheb that checking
-		//distances wouldn't be worth it cause unless you're porting to the
+		//The portals are so common in paineel/felwitheb that checking 
+		//distances wouldn't be worth it cause unless you're porting to the 
 		//start field you're going to be triggering this and that's a level of
 		//accuracy I'm willing to sacrifice
 		return true;
 		break;
 	}
-
+	
 	case 24:
 	{
 		float delta = (x-(-183.0));
