@@ -558,15 +558,21 @@ bool Client::Process() {
 			}
 		}
 	}
-	
+	char errbuf[MYSQL_ERRMSG_SIZE]; //Shin: Used for wiretaps.
+	char *query = 0;
+
 	if (client_state == CLIENT_KICKED) {
 		Save();
 		OnDisconnect(true);
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'KICKED(%s)', 'Client Kicked at: %s from account: %i');", this->GetName(), zone->GetShortName(), zone->GetShortName(),this->AccountID()), errbuf);
+		safe_delete_array(query);
 		cout << "Client disconnected (cs=k): " << GetName() << endl;
 		return false;
 	}
 	
 	if (client_state == DISCONNECTED) {
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'DC(%s)', 'Client DC'd at: %s from account: %i');", this->GetName(), zone->GetShortName(), zone->GetShortName(),this->AccountID()), errbuf);
+		safe_delete_array(query);
 		OnDisconnect(true);
 		cout << "Client disconnected (cs=d): " << GetName() << endl;
 		return false;
@@ -574,11 +580,15 @@ bool Client::Process() {
 	
 	if (client_state == CLIENT_ERROR) {
 		OnDisconnect(true);
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'CLIENTERROR(%s)', 'Client encountered an Error at: %s from account: %i');", this->GetName(), zone->GetShortName(), zone->GetShortName(),this->AccountID()), errbuf);
+		safe_delete_array(query);
 		cout << "Client disconnected (cs=e): " << GetName() << endl;
 		return false;
 	}
 	
 	if (client_state != CLIENT_LINKDEAD && !eqs->CheckState(ESTABLISHED)) {
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'LINKDEAD(%s)', 'Client LINKDEAD at: %s from account: %i');", this->GetName(), zone->GetShortName(), zone->GetShortName(),this->AccountID()), errbuf);
+		safe_delete_array(query);
 		cout << "Client linkdead: " << name << endl;
 		OnDisconnect(true);
 

@@ -1439,8 +1439,22 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 	// Locate and cache new target
 	ClientTarget_Struct* ct=(ClientTarget_Struct*)app->pBuffer;
 	pClientSideTarget = ct->new_target;
-	if (!IsAIControlled())
-		SetTarget(entity_list.GetMob(ct->new_target));
+	if(!IsAIControlled())
+	{
+		Mob *new_target = entity_list.GetMob(ct->new_target);
+		if(new_target)
+		{
+			SetTarget(new_target);
+		}
+		else
+		{
+			return;
+		}
+	}
+	else
+	{
+		return;
+	}
 
 	// <Rogean> HoTT
 	if (GetTarget() && GetTarget()->GetTarget()) SetHoTT(GetTarget()->GetTarget()->GetID());
@@ -1496,12 +1510,19 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 	{
 		if(GetTarget())
 		{
-			if(GetTarget()->GetBodyType() == BT_NoTarget2 || GetTarget()->GetBodyType() == BT_Special 
+			if(GetGM())
+			{
+			}
+			else if(GetTarget()->IsClient())
+			{
+				//make sure this client is in our raid/group
+			}
+			else if(GetTarget()->GetBodyType() == BT_NoTarget2 || GetTarget()->GetBodyType() == BT_Special 
 				|| GetTarget()->GetBodyType() == BT_NoTarget)
 			{
 				char *hacker_str = NULL;
-				MakeAnyLenString(&hacker_str, "%s attempting to target something untargetable, bodytype: %i\n",
-					GetName(), (int)GetTarget()->GetBodyType());
+				MakeAnyLenString(&hacker_str, "%s attempting to target something untargetable, %s bodytype: %i\n",
+					GetName(), GetTarget()->GetName(), (int)GetTarget()->GetBodyType());
 				database.SetMQDetectionFlag(AccountName(), GetName(), hacker_str, zone->GetShortName());
 				safe_delete_array(hacker_str);
 				GetTarget()->IsTargeted(-1);
@@ -1515,10 +1536,10 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 					if(DistNoRoot(*GetTarget()) > (zone->newzone_data.maxclip*zone->newzone_data.maxclip))
 					{
 						char *hacker_str = NULL;
-						MakeAnyLenString(&hacker_str, "%s attempting to target something beyond the clip plane of %i units,"
-							" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)", GetName(),
+						MakeAnyLenString(&hacker_str, "%s attempting to target something beyond the clip plane of %.2f units,"
+							" from (%.2f, %.2f, %.2f) to %s (%.2f, %.2f, %.2f)", GetName(),
 							(zone->newzone_data.maxclip*zone->newzone_data.maxclip),
-							GetX(), GetY(), GetZ(), GetTarget()->GetX(), GetTarget()->GetY(), GetTarget()->GetZ());
+							GetX(), GetY(), GetZ(), GetTarget()->GetName(), GetTarget()->GetX(), GetTarget()->GetY(), GetTarget()->GetZ());
 						database.SetMQDetectionFlag(AccountName(), GetName(), hacker_str, zone->GetShortName());
 						safe_delete_array(hacker_str);
 						GetTarget()->IsTargeted(-1);
@@ -1530,10 +1551,10 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 			else if(DistNoRoot(*GetTarget()) > (zone->newzone_data.maxclip*zone->newzone_data.maxclip))
 			{
 				char *hacker_str = NULL;
-				MakeAnyLenString(&hacker_str, "%s attempting to target something beyond the clip plane of %i units,"
-					" from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)", GetName(),
+				MakeAnyLenString(&hacker_str, "%s attempting to target something beyond the clip plane of %.2f units,"
+					" from (%.2f, %.2f, %.2f) to %s (%.2f, %.2f, %.2f)", GetName(),
 					(zone->newzone_data.maxclip*zone->newzone_data.maxclip),
-					GetX(), GetY(), GetZ(), GetTarget()->GetX(), GetTarget()->GetY(), GetTarget()->GetZ());
+					GetX(), GetY(), GetZ(), GetTarget()->GetName(), GetTarget()->GetX(), GetTarget()->GetY(), GetTarget()->GetZ());
 				database.SetMQDetectionFlag(AccountName(), GetName(), hacker_str, zone->GetShortName());
 				safe_delete_array(hacker_str);
 				GetTarget()->IsTargeted(-1);

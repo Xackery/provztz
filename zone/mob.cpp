@@ -503,46 +503,45 @@ float Mob::_GetMovementSpeed(int mod) const {
 		return 0.0f;
 	
 	float aa_mod = 0.0f;
-	float speed_mod = 1.0f;
+	float speed_mod = runspeed;
 	bool has_horse = false;
-	if(CastToClient()->GetGMSpeed())
+	if (IsClient())
 	{
-		speed_mod = 3.125f;
-	}
-	else
-	{
-		Mob* horse = entity_list.GetMob(CastToClient()->GetHorseId());
-		if(horse)
+		if(CastToClient()->GetGMSpeed())
 		{
-			speed_mod = horse->GetBaseRunspeed();
-			has_horse = true;
+			speed_mod = 3.125f;
 		}
 		else
 		{
-			speed_mod = runspeed;
+			Mob* horse = entity_list.GetMob(CastToClient()->GetHorseId());
+			if(horse)
+			{
+				speed_mod = horse->GetBaseRunspeed();
+				has_horse = true;
+			}
 		}
-	}
-	
-	if (IsClient()){
-            aa_mod += ((CastToClient()->GetAA(aaInnateRunSpeed) * 0.10)
+
+		aa_mod += ((CastToClient()->GetAA(aaInnateRunSpeed) * 0.10)
 			+ (CastToClient()->GetAA(aaFleetofFoot) * 0.10)
 			+ (CastToClient()->GetAA(aaSwiftJourney) * 0.10)
-		);
+			);
 		//Selo's Enduring Cadence should be +7% per level
 	}
 
 	int spell_mod = spellbonuses.movementspeed + itembonuses.movementspeed;
 	int movemod = 0;
 
-	if(spell_mod > (aa_mod*100))
+	if(spell_mod < 0)
+	{
+		movemod += spell_mod;
+	}
+	else if(spell_mod > (aa_mod*100))
 	{
 		movemod = spell_mod;
 	}
 	else
 	{
 		movemod = (aa_mod * 100);
-		if(spell_mod < 0)
-			movemod += spell_mod;
 	}
 	
 	if(movemod < -85) //cap it at moving very very slow
@@ -552,19 +551,22 @@ float Mob::_GetMovementSpeed(int mod) const {
 		speed_mod += (speed_mod * float(movemod) / 100.0f);
 
 	if(mod != 0)
-		speed_mod += (speed_mod * mod / 100);
+		speed_mod += (speed_mod * (float)mod / 100.0f);
 
 	if(speed_mod <= 0.0f)
 		return(0.0001f);
 
 	//runspeed cap.
-	if(GetClass() == BARD) {
-		//this extra-high bard cap should really only apply if they have AAs
-		if(speed_mod > 1.74)
-			speed_mod = 1.74;
-	} else {
-		if(speed_mod > 1.58)
-			speed_mod = 1.58;
+	if(IsClient())
+	{
+		if(GetClass() == BARD) {
+			//this extra-high bard cap should really only apply if they have AAs
+			if(speed_mod > 1.74)
+				speed_mod = 1.74;
+		} else {
+			if(speed_mod > 1.58)
+				speed_mod = 1.58;
+		}
 	}
 
 	return speed_mod;

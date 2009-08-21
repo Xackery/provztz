@@ -43,7 +43,8 @@ void Client::Handle_OP_ZoneChange(const EQApplicationPacket *app) {
 		LogFile->write(EQEMuLog::Debug, "Wrong size: OP_ZoneChange, size=%d, expected %d", app->size, sizeof(ZoneChange_Struct));
 		return;
 	}
-
+	char errbuf[MYSQL_ERRMSG_SIZE]; //Shin: used for wiretaps
+	char *query = 0;
 #if EQDEBUG >= 5
 	LogFile->write(EQEMuLog::Debug, "Zone request from %s", GetName());
 	DumpPacket(app);
@@ -187,23 +188,27 @@ void Client::Handle_OP_ZoneChange(const EQApplicationPacket *app) {
 	switch(zone_mode) {
 	case EvacToSafeCoords:
 	case ZoneToSafeCoords:
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'TOSAFE(%s)', 'Move To Safe Point');", this->GetName(),zone->GetShortName()),  errbuf);
 		LogFile->write(EQEMuLog::Debug, "Zoning %s to safe coords (%f,%f,%f) in %s (%d)", GetName(), safe_x, safe_y, safe_z, target_zone_name, target_zone_id);
 		dest_x = safe_x;
 		dest_y = safe_y;
 		dest_z = safe_z;
 		break;
 	case GMSummon:
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'GMMOVE(%s)', 'GM Summon To: %s');", this->GetName(), target_zone_name, target_zone_name), errbuf);
 		dest_x = zonesummon_x;
 		dest_y = zonesummon_y;
 		dest_z = zonesummon_z;
 		ignorerestrictions = 1;
 		break;
 	case GateToBindPoint:
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'GATE(%s)', 'Gate To: %s');", this->GetName(), target_zone_name, target_zone_name), errbuf);
 		dest_x = m_pp.binds[0].x;
 		dest_y = m_pp.binds[0].y;
 		dest_z = m_pp.binds[0].z;
 		break;
 	case ZoneToBindPoint:
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'ZONETOBIND(%s)', 'Zone to Bind: %s');", this->GetName(), target_zone_name, target_zone_name), errbuf);
 		dest_x = m_pp.binds[0].x;
 		dest_y = m_pp.binds[0].y;
 		dest_z = m_pp.binds[0].z;
@@ -211,13 +216,14 @@ void Client::Handle_OP_ZoneChange(const EQApplicationPacket *app) {
 		break;
 	case ZoneSolicited:  //we told the client to zone somewhere, so we know where they are going.
 		//recycle zonesummon variables
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'SZONETO(%s)', 'SZoneTo: %s From: %s');", this->GetName(), target_zone_name, target_zone_name, zone->GetShortName()), errbuf);
 		dest_x = zonesummon_x;
 		dest_y = zonesummon_y;
 		dest_z = zonesummon_z;
 		break;
 	case ZoneUnsolicited:   //client came up with this on its own.
 		//client requested a zoning... what are the cases when this could happen?
-		
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message) VALUES ('%s', 'USZONETO(%s)', 'USZoneTo: %s From: %s');", this->GetName(), target_zone_name, target_zone_name, zone->GetShortName()), errbuf);
 		//Handle zone point case:
 		if(zone_point != NULL) {
 			//they are zoning using a valid zone point, figure out coords
@@ -284,6 +290,7 @@ void Client::Handle_OP_ZoneChange(const EQApplicationPacket *app) {
 		LogFile->write(EQEMuLog::Error, "Zoning %s: Rules prevent this char from zoning into '%s'", GetName(), target_zone_name);
 		SendZoneError(zc, myerror);
 	}
+	safe_delete_array(query);
 }
 
 void Client::SendZoneCancel(ZoneChange_Struct *zc) {
@@ -644,12 +651,15 @@ void Client::ZonePC(int32 zoneID, int32 instance_id, float x, float y, float z, 
 		//They aren't needed and it keeps behavior on next zone attempt from being undefined.
 		if(zoneID == zone->GetZoneID() && instance_id == zone->GetInstanceID())
 		{
-			zonesummon_x = 0;
-			zonesummon_y = 0;
-			zonesummon_z = 0;
-			zonesummon_id = 0;
-			zonesummon_ignorerestrictions = 0;
-			zone_mode = ZoneUnsolicited;
+			if(zm != EvacToSafeCoords && zm != ZoneToSafeCoords && zm != ZoneToBindPoint)
+			{
+				zonesummon_x = 0;
+				zonesummon_y = 0;
+				zonesummon_z = 0;
+				zonesummon_id = 0;
+				zonesummon_ignorerestrictions = 0;
+				zone_mode = ZoneUnsolicited;
+			}
 		}
 	}
 }
