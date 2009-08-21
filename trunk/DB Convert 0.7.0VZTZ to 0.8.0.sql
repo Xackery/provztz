@@ -155,6 +155,7 @@ ALTER TABLE `neq`.`npc_types` ADD `version` smallint(5) unsigned NOT NULL DEFAUL
 ALTER TABLE `neq`.`npc_types` ADD `maxlevel` tinyint(3) NOT NULL default '0';
 ALTER TABLE `neq`.`npc_types` ADD `scalerate` int(11) NOT NULL default '100';
 
+
 ALTER TABLE `neq`.`object` MODIFY `zoneid` int(11) unsigned NOT NULL DEFAULT '0';
  
 ALTER TABLE `neq`.`object` ADD `version` smallint(5) unsigned NOT NULL DEFAULT '0';
@@ -168,6 +169,7 @@ ALTER TABLE `neq`.`player_corpses` ADD `instanceid` smallint(5) unsigned NOT NUL
   
 
 ALTER TABLE `neq`.`spawn2` ADD `version` smallint(5) unsigned NOT NULL DEFAULT '0';
+ALTER TABLE `spawn2` ADD `enabled` TINYINT UNSIGNED DEFAULT '1' NOT NULL AFTER `cond_value`; #Rev 923 change
   
 ALTER TABLE `neq`.`traps` ADD `version` smallint(5) unsigned NOT NULL DEFAULT '0';
 ALTER TABLE `neq`.`traps` ADD `level` mediumint(4) unsigned NOT NULL DEFAULT '1';
@@ -914,3 +916,6 @@ CREATE TABLE  `neq`.`trader_audit` (
   `trantype` tinyint(4) NOT NULL DEFAULT '0'
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
+#Now for finishing touches..
+update rule_values set rule_value = true where rule_name = 'Character:LeaveCorpses';
+update `variables` set `value` = 7 where varname = 'Expansions';

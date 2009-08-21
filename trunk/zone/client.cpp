@@ -758,10 +758,12 @@ void Client::ChannelMessageReceived(int8 chan_num, int8 language, int8 lang_skil
 			}
 		}
 	}
-
+	char errbuf[MYSQL_ERRMSG_SIZE]; //Shin: Used for Wiretaps of chat.
+    char *query = 0;
 	switch(chan_num)
 	{
 	case 0: { // GuildChat
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', 'GUILD(%i)', '%s', '%s');", this->GetName(), GuildID(), message, long2ip(this->GetIP()).c_str()), errbuf);
 		if (!IsInAGuild())
 			Message_StringID(0, GUILD_NOT_MEMBER2);	//You are not a member of any guild.
 		else if (!guild_mgr.CheckPermission(GuildID(), GuildRank(), GUILD_SPEAK))
@@ -771,6 +773,7 @@ void Client::ChannelMessageReceived(int8 chan_num, int8 language, int8 lang_skil
 		break;
 	}
 	case 2: { // GroupChat
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', 'GROUP', '%s', '%s');", this->GetName(), message, long2ip(this->GetIP()).c_str()), errbuf);
 		Raid* raid = entity_list.GetRaidByClient(this);
 		if(raid){
 			raid->RaidGroupSay((const char*) message, this);
@@ -794,7 +797,7 @@ void Client::ChannelMessageReceived(int8 chan_num, int8 language, int8 lang_skil
 		Mob *sender = this;
 		if (GetPet() && GetPet()->FindType(SE_VoiceGraft))
 			sender = GetPet();
-
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', 'SHOUT(%s)', '%s', '%s');", this->GetName(), zone->GetShortName(), message, long2ip(this->GetIP()).c_str()), errbuf);
 		entity_list.ChannelMessage(sender, chan_num, language, lang_skill, message);
  		break;
  	}
@@ -838,6 +841,7 @@ void Client::ChannelMessageReceived(int8 chan_num, int8 language, int8 lang_skil
 		break;
 	}
 	case 5: { // OOC
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', 'OOC(%s)', '%s', '%s');", this->GetName(), zone->GetShortName(), message, long2ip(this->GetIP()).c_str()), errbuf);
 		if(RuleB(Chat, ServerWideOOC))
 		{
 			if(!global_channel_timer.Check())
@@ -885,6 +889,7 @@ void Client::ChannelMessageReceived(int8 chan_num, int8 language, int8 lang_skil
 		break;
 	}
 	case 6: // Broadcast
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', 'BROADCAST(%s)', '%s', '%s');", this->GetName(), zone->GetShortName(), message, long2ip(this->GetIP()).c_str()), errbuf);
 	case 11: { // GMSay
 		if (!(admin >= 80))
 			Message(0, "Error: Only GMs can use this channel");
@@ -893,15 +898,18 @@ void Client::ChannelMessageReceived(int8 chan_num, int8 language, int8 lang_skil
 		break;
 	}
 	case 7: { // Tell
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', '%s', '%s', '%s');", this->GetName(), targetname, message, long2ip(this->GetIP()).c_str()), errbuf);
 		if(!worldserver.SendChannelMessage(this, targetname, chan_num, 0, language, message))
 			Message(0, "Error: World server disconnected");
 		break;
 	}
 	case 8: { // /say
 		if(message[0] == COMMAND_CHAR)  {
+			database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', '%s', '%s', '%s');", this->GetName(), (this->GetTarget()?this->GetTarget()->GetName():"NONE"), message, long2ip(this->GetIP()).c_str()), errbuf);
 			command_dispatch(this, message);
 			break;
 		}
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', 'SAY(%s)', '%s', '%s');", this->GetName(), zone->GetShortName(), message, long2ip(this->GetIP()).c_str()), errbuf);
 		Mob* sender = this;
 		if (GetPet() && GetPet()->FindType(SE_VoiceGraft))
 			sender = GetPet();
@@ -969,6 +977,7 @@ void Client::ChannelMessageReceived(int8 chan_num, int8 language, int8 lang_skil
 		Message(0, "Channel (%i) not implemented",(int16)chan_num);
 	}
 	}
+	safe_delete_array(query);
 }
 
 // if no language skill is specified, call the function with a skill of 100.

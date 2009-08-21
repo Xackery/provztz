@@ -428,6 +428,7 @@ int EntityList::GetHatedCount(Mob *attacker, Mob *exclude) {
 }
 
 void EntityList::AIYellForHelp(Mob* sender, Mob* attacker) {
+	return; //Shin: Yelling for help is futile on 25x.
 	_ZP(EntityList_AIYellForHelp);
 	if(!sender || !attacker)
 		return;

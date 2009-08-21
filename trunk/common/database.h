@@ -221,7 +221,7 @@ public:
  	bool	SetAccountStatus(const char* name, sint16 status);
 	bool	SetLocalPassword(uint32 accid, const char* password);
 	int32	GetAccountIDFromLSID(int32 iLSID, char* oAccountName = 0, sint16* oStatus = 0);
-	bool	UpdateLiveChar(char* charname,int32 lsaccount_id);
+	bool	UpdateLiveChar(char* charname,int32 lsaccount_id, char* loginip);
 	bool	GetLiveChar(int32 account_id, char* cname);
 	int8	GetAgreementFlag(int32 acctid);
 	void	SetAgreementFlag(int32 acctid);

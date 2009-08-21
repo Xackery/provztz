@@ -525,11 +525,67 @@ bool Client::HandlePacket(const EQApplicationPacket *app) {
 			}
 
 			if(!pZoning && ew->return_home)
-				zoneID = database.MoveCharacterToBind(charid,4);
+			{
+				CharacterSelect_Struct* cs = new CharacterSelect_Struct;
+				memset(cs, 0, sizeof(CharacterSelect_Struct));
+				database.GetCharSelectInfo(GetAccountID(), cs);
+				bool home_enabled = false;
+
+				for(int x = 0; x < 10; ++x)
+				{
+					if(strcasecmp(cs->name[x], char_name) == 0)
+					{
+						if(cs->gohome[x] == 1)
+						{
+							home_enabled = true;
+						}
+					}
+				}
+				safe_delete(cs);
+
+				if(home_enabled)
+				{
+					zoneID = database.MoveCharacterToBind(charid,4);
+				}
+				else
+				{
+					clog(WORLD__CLIENT_ERR,"'%s' is trying to go home before they're able...",char_name);
+					database.SetHackerFlag(GetAccountName(), char_name, "MQGoHome: player tried to enter the tutorial without having go home enabled for this character.");
+					eqs->Close();
+					break;
+				}
+			}
 
 			if(!pZoning && (RuleB(World, EnableTutorialButton) && (ew->tutorial || StartInTutorial))) {
-				zoneID = RuleI(World, TutorialZoneID);
-				database.MoveCharacterToZone(charid, database.GetZoneName(zoneID));
+				CharacterSelect_Struct* cs = new CharacterSelect_Struct;
+				memset(cs, 0, sizeof(CharacterSelect_Struct));
+				database.GetCharSelectInfo(GetAccountID(), cs);
+				bool tutorial_enabled = false;
+
+				for(int x = 0; x < 10; ++x)
+				{
+					if(strcasecmp(cs->name[x], char_name) == 0)
+					{
+						if(cs->tutorial[x] == 1)
+						{
+							tutorial_enabled = true;
+						}
+					}
+				}
+				safe_delete(cs);
+
+				if(tutorial_enabled)
+				{
+					zoneID = RuleI(World, TutorialZoneID);
+					database.MoveCharacterToZone(charid, database.GetZoneName(zoneID));
+				}
+				else
+				{
+					clog(WORLD__CLIENT_ERR,"'%s' is trying to go to tutorial but are not allowed...",char_name);
+					database.SetHackerFlag(GetAccountName(), char_name, "MQTutorial: player tried to enter the tutorial without having tutorial enabled for this character.");
+					eqs->Close();
+					break;
+				}
 
 				// HACK: Entering the Tutorial directly from Character Creation (without going back to Char Select)
 				// does not work correctly yet in SoF, so bounce them back to Character Select first.
@@ -800,7 +856,9 @@ void Client::EnterWorld(bool TryBootup) {
 	pwaitingforbootup = 0;
 
 	cle->SetChar(charid, char_name);
-	database.UpdateLiveChar(char_name, GetAccountID());
+	struct in_addr  in;
+			in.s_addr = cle->GetIP();
+	database.UpdateLiveChar(char_name, GetAccountID(), inet_ntoa(in));
 	clog(WORLD__CLIENT,"%s %s (%d:%d)",seencharsel ? "Entering zone" : "Zoning to",zone_name,zoneID,instanceID);
 //	database.SetAuthentication(account_id, char_name, zone_name, ip);
 
@@ -810,6 +868,12 @@ void Client::EnterWorld(bool TryBootup) {
 			ZoneUnavail();
 			return;
 		}
+
+		//Shin: Part of wiretap system, logged in.
+		char errbuf[MYSQL_ERRMSG_SIZE];
+		char *query = 0;		
+		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', 'LOGIN(%s)', 'Logged in at: %s from account: %i', '%s');", this->GetCharName(), database.GetZoneName(this->GetZoneID()), database.GetZoneName(this->GetZoneID()),this->GetAccountID(), long2ip(this->GetIP()).c_str()), errbuf);
+		safe_delete_array(query);
 
 		ServerPacket* pack = new ServerPacket;
 		pack->opcode = ServerOP_AcceptWorldEntrance;

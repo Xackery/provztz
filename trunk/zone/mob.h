@@ -494,7 +494,7 @@ bool logpos;
 
 	void	DamageShield(Mob* other);
 	bool	FindBuff(int16 spellid);
-	int		FindBuffSlot(int16 spellid);
+	int		FindBuffSlot(int16 spellid); //Shin: Used for PvP
 	bool	FindType(int8 type, bool bOffensive = false, int16 threshold = 100);
 	sint8	GetBuffSlotFromType(int8 type);
 	int		CountDispellableBuffs();
@@ -678,7 +678,7 @@ bool logpos;
 	void	BuffFadeBySpellID(int16 spell_id);
 	void	BuffFadeByEffect(int effectid, int skipslot = -1);
 	void	BuffFadeAll();
-	void	BuffFadeCount(int8 n);
+	void	BuffFadeCount(int8 n); //Shin: Used for PvP
 	void	BuffFadeDetrimental();
 	void	BuffFadeBySlot(int slot, bool iRecalcBonuses = true);
 	void	BuffFadeDetrimentalByCaster(Mob *caster);

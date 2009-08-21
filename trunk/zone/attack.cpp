@@ -331,12 +331,11 @@ bool Mob::CheckHitChance(Mob* other, SkillType skillinuse, int Hand)
 	//
 
 	float tohit_roll = MakeRandomFloat(0, 100);
-	attacker->Message(0, "Hit Chance: %f", chancetohit); //Shin: Debug message.
+	
 	mlog(COMBAT__TOHIT, "Final hit chance: %.2f%%. Hit roll %.2f", chancetohit, tohit_roll);
 	
 	return(tohit_roll <= chancetohit);
 }
-
 
 bool Mob::AvoidDamage(Mob* other, sint32 &damage)
 {
@@ -1469,7 +1468,7 @@ void Client::Death(Mob* killerMob, sint32 damage, int16 spell, SkillType attack_
 			}
 			safe_delete_array(query);
 		//End Lieka Edit
-	
+		} //Shin: This nested bracket may belong somewhere else..! Figure it out!
 		
 		if(killerMob->IsClient() && (IsDueling() || killerMob->CastToClient()->IsDueling())) {
 			SetDueling(false);
@@ -1490,7 +1489,7 @@ void Client::Death(Mob* killerMob, sint32 damage, int16 spell, SkillType attack_
 			}
 		}
 	}
-	} //Shin: This nested bracket may belong somewhere else..! Figure it out!
+
 
 	entity_list.RemoveFromTargets(this);
 	hate_list.RemoveEnt(this);
