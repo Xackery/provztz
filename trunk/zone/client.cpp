@@ -286,7 +286,17 @@ Client::Client(EQStreamInterface* ieqs)
 	m_ShadowStepExemption = 0;
 	m_KnockBackExemption = 0;
 	m_PortExemption = 0;
+	m_SenseExemption = 0;
 	m_CheatDetectMoved = false;
+	CanUseReport = true;
+	aa_los_me.x = 0;
+	aa_los_me.y = 0;
+	aa_los_me.z = 0;
+	aa_los_them.x = 0;
+	aa_los_them.y = 0;
+	aa_los_them.z = 0;
+	aa_los_them_mob = NULL;
+	los_status = false;
 }
 
 Client::~Client() {
@@ -718,7 +728,7 @@ void Client::ChannelMessageReceived(int8 chan_num, int8 language, int8 lang_skil
 	{
 		if(strcmp(targetname, "discard") != 0)
 		{
-			if(chan_num == 3 || chan_num == 4 || chan_num == 5)
+			if(chan_num == 3 || chan_num == 4 || chan_num == 5 || chan_num == 7)
 			{
 				if(GlobalChatLimiterTimer)
 				{
@@ -901,6 +911,31 @@ void Client::ChannelMessageReceived(int8 chan_num, int8 language, int8 lang_skil
 		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', '%s', '%s', '%s');", this->GetName(), targetname, message, long2ip(this->GetIP()).c_str()), errbuf);
 		if(!worldserver.SendChannelMessage(this, targetname, chan_num, 0, language, message))
 			Message(0, "Error: World server disconnected");
+			if(!global_channel_timer.Check())
+			{
+				if(strlen(targetname)==0)
+					ChannelMessageReceived(7, language, lang_skill, message, "discard"); //Fast typer or spammer??
+				else
+					return;
+			}
+
+			if(GetRevoked())
+			{
+				Message(0, "You have been revoked.  You may not send tells.");
+				return;
+			}
+
+			if(TotalKarma < RuleI(Chat, KarmaGlobalChatLimit))
+			{
+				if(GetLevel() < RuleI(Chat, GlobalChatLevelLimit))
+				{
+					Message(0, "You do not have permission to send tells at this time.");
+					return;
+				}
+			}
+
+			if(!worldserver.SendChannelMessage(this, targetname, chan_num, 0, language, message))
+				Message(0, "Error: World server disconnected");
 		break;
 	}
 	case 8: { // /say
@@ -5088,6 +5123,8 @@ const bool Client::IsMQExemptedArea(int32 zoneID, float x, float y, float z) con
 	}
 	case 62:
 	case 75:
+	case 114:
+	case 209:
 	{
 		//The portals are so common in paineel/felwitheb that checking 
 		//distances wouldn't be worth it cause unless you're porting to the 
@@ -5169,4 +5206,222 @@ const bool Client::IsMQExemptedArea(int32 zoneID, float x, float y, float z) con
 		break;
 	}
 	return false;
+}
+
+void Client::SendRewards()
+{
+	std::vector<ClientReward> rewards;
+	char errbuf[MYSQL_ERRMSG_SIZE];
+	char* query = 0;
+	MYSQL_RES *result;
+	MYSQL_ROW row;
+
+	if(database.RunQuery(query,MakeAnyLenString(&query,"SELECT reward_id, amount FROM"
+		" account_rewards WHERE account_id=%i ORDER by reward_id", AccountID()),
+		errbuf,&result)) 
+	{
+		while((row = mysql_fetch_row(result))) 
+		{
+			ClientReward cr;
+			cr.id = atoi(row[0]);
+			cr.amount = atoi(row[1]);
+			rewards.push_back(cr);
+		}
+		mysql_free_result(result);
+		safe_delete_array(query);
+	}
+	else
+	{
+		LogFile->write(EQEMuLog::Error, "Error in Client::SendRewards(): %s (%s)", query, errbuf);
+		safe_delete_array(query);
+		return;
+	}
+
+	if(rewards.size() > 0)
+	{
+		EQApplicationPacket *vetapp = new EQApplicationPacket(OP_VetRewardsAvaliable, (sizeof(InternalVeteranReward) * rewards.size()));
+		uchar *data = vetapp->pBuffer;
+		for(int i = 0; i < rewards.size(); ++i)
+		{
+			InternalVeteranReward *ivr = (InternalVeteranReward*)data;
+			ivr->claim_id = rewards[i].id;
+			ivr->number_available = rewards[i].amount;
+			list<InternalVeteranReward>::iterator iter = zone->VeteranRewards.begin();
+			while(iter != zone->VeteranRewards.end())
+			{
+				if((*iter).claim_id == rewards[i].id)
+				{
+					break;
+				}
+				iter++;
+			}
+
+			if(iter != zone->VeteranRewards.end())
+			{
+				InternalVeteranReward ivro = (*iter);
+				ivr->claim_count = ivro.claim_count;
+				for(int x = 0; x < ivro.claim_count; ++x)
+				{
+					ivr->items[x].item_id = ivro.items[x].item_id;
+					ivr->items[x].charges = ivro.items[x].charges;
+					strcpy(ivr->items[x].item_name, ivro.items[x].item_name);
+				}
+			}
+
+			data += sizeof(InternalVeteranReward);
+		}
+		FastQueuePacket(&vetapp);
+	}
+}
+
+bool Client::TryReward(int32 claim_id)
+{
+	//Make sure we have an open spot
+	//Make sure we have it in our acct and count > 0
+	//Make sure the entry was found
+	//If we meet all the criteria:
+	//Decrement our count by 1 if it > 1 delete if it == 1
+	//Create our item in bag if necessary at the free inv slot
+	//save
+	int32 free_slot = 0xFFFFFFFF;
+
+	for(int i = 22; i < 30; ++i)
+	{
+		ItemInst *item = GetInv().GetItem(i);
+		if(!item)
+		{
+			free_slot = i;
+			break;
+		}
+	}
+
+	if(free_slot == 0xFFFFFFFF)
+	{
+		return false;
+	}
+
+	char errbuf[MYSQL_ERRMSG_SIZE];
+	char* query = 0;
+	MYSQL_RES *result;
+	MYSQL_ROW row;
+	int32 amt = 0;
+
+	if(database.RunQuery(query,MakeAnyLenString(&query,"SELECT amount FROM"
+		" account_rewards WHERE account_id=%i AND reward_id=%i", AccountID(), claim_id),
+		errbuf,&result)) 
+	{
+		row = mysql_fetch_row(result);
+		if(row)
+		{
+			amt = atoi(row[0]);
+		}
+		else
+		{
+			mysql_free_result(result);
+			safe_delete_array(query);
+			return false;
+		}
+		mysql_free_result(result);
+		safe_delete_array(query);
+	}
+	else
+	{
+		LogFile->write(EQEMuLog::Error, "Error in Client::TryReward(): %s (%s)", query, errbuf);
+		safe_delete_array(query);
+		return false;
+	}
+
+	if(amt == 0)
+	{
+		return false;
+	}
+
+	list<InternalVeteranReward>::iterator iter = zone->VeteranRewards.begin();
+	while(iter != zone->VeteranRewards.end())
+	{
+		if((*iter).claim_id == claim_id)
+		{
+			break;
+		}
+		iter++;
+	}
+
+	if(iter == zone->VeteranRewards.end())
+	{
+		return false;
+	}
+
+	if(amt == 1)
+	{
+		if(!database.RunQuery(query,MakeAnyLenString(&query,"DELETE FROM"
+			" account_rewards WHERE account_id=%i AND reward_id=%i", AccountID(), claim_id),
+			errbuf)) 
+		{
+			LogFile->write(EQEMuLog::Error, "Error in Client::TryReward(): %s (%s)", query, errbuf);
+			safe_delete_array(query);
+		}
+		else
+		{
+			safe_delete_array(query);
+		}
+	}
+	else
+	{
+		if(!database.RunQuery(query,MakeAnyLenString(&query,"UPDATE account_rewards SET amount=(amount-1)"
+			" WHERE account_id=%i AND reward_id=%i", AccountID(), claim_id),
+			errbuf)) 
+		{
+			LogFile->write(EQEMuLog::Error, "Error in Client::TryReward(): %s (%s)", query, errbuf);
+			safe_delete_array(query);
+		}
+		else
+		{
+			safe_delete_array(query);
+		}
+	}
+
+	InternalVeteranReward ivr = (*iter);
+	ItemInst *claim = database.CreateItem(ivr.items[0].item_id, ivr.items[0].charges);
+	if(claim)
+	{
+		bool lore_conflict = false;
+		if(CheckLoreConflict(claim->GetItem()))
+		{
+			lore_conflict = true;
+		}
+
+		for(int y = 1; y < 8; y++)
+		{
+			if(ivr.items[y].item_id)
+			{
+				if(claim->GetItem()->ItemClass == 1)
+				{
+					ItemInst *item_temp = database.CreateItem(ivr.items[y].item_id, ivr.items[y].charges);
+					if(item_temp)
+					{
+						if(CheckLoreConflict(item_temp->GetItem()))
+						{
+							lore_conflict = true;
+						}
+						claim->PutItem(y-1, *item_temp);
+					}
+				}
+			}
+		}
+
+		if(lore_conflict)
+		{
+			Message_StringID(0, PICK_LORE);
+			safe_delete(claim);
+			return true;
+		}
+		else
+		{
+			PutItemInInventory(free_slot, *claim);
+			SendItemPacket(free_slot, claim, ItemPacketTrade);
+		}
+	}
+
+	Save();
+	return true;
 }

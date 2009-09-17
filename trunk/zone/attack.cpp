@@ -43,6 +43,8 @@ using namespace std;
 #include "guild_mgr.h" //Shin: Added so guild ranks can be shown on PvP kills.
 #include "../common/misc.h" //Shin: This is for long2ip conversions on guild rank wiretap recording.
 #include "worldserver.h" //Shin: For Worldserver Emote Messages on PVP kills.
+#include "faction.h" //Shin: For faction checks on alignment with NPCs etc.
+
 #ifdef WIN32
 #define snprintf	_snprintf
 #define strncasecmp	_strnicmp
@@ -689,7 +691,17 @@ int Mob::GetWeaponDamage(Mob *against, const Item_Struct *weapon_item) {
 	if(against->GetInvul() || against->SpecAttacks[IMMUNE_MELEE]){
 		return 0;
 	}
-	
+
+	CastToClient()->Message(15, "WEAPDMG" ); //Shin: Debug line
+	if (IsClient())
+	{ //Shin: Can't attack ally faction monsters.
+		if ((against->GetPrimaryFaction() == 500 && CastToClient()->GetCharacterFactionLevel(500) > 1000)
+		  ||(against->GetPrimaryFaction() == 501 && CastToClient()->GetCharacterFactionLevel(501) > 1000))
+		{
+			CastToClient()->Message(10, "You can't attack this ally NPC!");
+			return 0;
+		}
+	}
 	//check to see if our weapons or fists are magical.
 	if(against->SpecAttacks[IMMUNE_MELEE_NONMAGICAL]){
 		if(weapon_item){
@@ -794,8 +806,18 @@ int Mob::GetWeaponDamage(Mob *against, const ItemInst *weapon_item)
 
 	if(against->GetInvul() || against->SpecAttacks[IMMUNE_MELEE]){
 		return 0;
+	}	
+	
+	CastToClient()->Message(15, "WEAPDMGitem" ); //Shin: Debug line
+	if (IsClient())
+	{ //Shin: Can't attack ally faction monsters.
+		if ((against->GetPrimaryFaction() == 500 && CastToClient()->GetCharacterFactionLevel(500) > 1000)
+		  ||(against->GetPrimaryFaction() == 501 && CastToClient()->GetCharacterFactionLevel(501) > 1000))
+		{
+			CastToClient()->Message(10, "You can't attack this ally NPC!");
+			return 0;
+		}
 	}
-
 	//check for items being illegally attained
 	if(weapon_item){
 		const Item_Struct *mWeaponItem = weapon_item->GetItem();
@@ -1034,7 +1056,16 @@ bool Client::Attack(Mob* other, int Hand, bool bRiposte)
 		Message_StringID(10, DIVINE_AURA_NO_ATK);	//You can't attack while invulnerable!
 		return false;
 	}
-
+	//CastToClient()->Message(15, "ATTACKFAIL" ); //Shin: Debug line
+	if (IsClient())
+	{ //Shin: Can't attack ally faction monsters.
+		if ((other->CastToNPC()->GetPrimaryFaction() == 500 && CastToClient()->GetCharacterFactionLevel(500) > 1000)
+		  ||(other->CastToNPC()->GetPrimaryFaction() == 501 && CastToClient()->GetCharacterFactionLevel(501) > 1000))
+		{
+			CastToClient()->Message(10, "You can't attack this ally NPC!");
+			return 0;
+		}
+	}
 	
 	ItemInst* weapon;
 	if (Hand == 14)	// Kaiyodo - Pick weapon from the attacking hand
@@ -1061,8 +1092,8 @@ bool Client::Attack(Mob* other, int Hand, bool bRiposte)
 	/// Now figure out damage
 	int damage = 0;
 	int8 mylevel = GetLevel() ? GetLevel() : 1;
-	int weapon_damage = GetWeaponDamage(other, weapon);
-	
+	int weapon_damage = GetWeaponDamage(other, weapon);		
+		
 	//if weapon damage > 0 then we know we can hit the target with this weapon
 	//otherwise we cannot and we set the damage to -5 later on
 	if(weapon_damage > 0){
@@ -1490,7 +1521,6 @@ void Client::Death(Mob* killerMob, sint32 damage, int16 spell, SkillType attack_
 		}
 	}
 
-
 	entity_list.RemoveFromTargets(this);
 	hate_list.RemoveEnt(this);
 	
@@ -1757,7 +1787,6 @@ bool NPC::Attack(Mob* other, int Hand, bool bRiposte)	 // Kaiyodo - base functio
 	}
 	
 	int weapon_damage = GetWeaponDamage(other, weapon);
-	
 	//do attack animation regardless of whether or not we can hit below
 	sint16 charges = 0;
 	ItemInst weapon_inst(weapon, charges);
@@ -2228,7 +2257,17 @@ void Mob::AddToHateList(Mob* other, sint32 hate, sint32 damage, bool iYellForHel
 
 	if(IsFamiliar() || SpecAttacks[IMMUNE_AGGRO])
 		return;	
-
+	
+	//CastToClient()->Message(15, "AGGROCHECK" ); //Shin: Debug line
+	if (other->IsClient())
+	{ //Shin: Can't attack ally faction monsters.
+		if ((GetPrimaryFaction() == 500 && other->CastToClient()->GetCharacterFactionLevel(500) > 1000)
+		  ||(GetPrimaryFaction() == 501 && other->CastToClient()->GetCharacterFactionLevel(501) > 1000))
+		{
+			other->CastToClient()->Message(10, "You can't attack this ally NPC!");
+			return;
+		}
+	}
 	if (other == myowner)
 		return;
 

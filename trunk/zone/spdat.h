@@ -453,7 +453,7 @@ typedef enum  {
 //#define SE_Unknown345				345	//not used
 //#define SE_Unknown346				346	//not used
 //#define SE_Unknown347				347	//not used
-#define SE_Unknown348				348	//not implemented. looks like a rune based on how many times you cast a spell (cast a spell, decrease by 1. 0 = buff wears off)
+#define SE_DamageRedirect			348 //Deal % damage to another target
 //#define SE_Unknown349				349	//not used
 #define SE_ManaBurn					350	//not implemented. no idea on the calculation
 										//from http://everquest.allakhazam.com/db/spell.html?spell=8452;page=1;howmany=50#m1184016444141306266 for Mana Blaze (base1 = 9000):
@@ -491,20 +491,18 @@ typedef enum  {
 //#define SE_Unknown381				381	//not used
 #define SE_BlockDS					382 //something to do with blocking a % of certain ds?
 #define SE_Leap						383 //used to leap forward? probably something like a small knock back reverse to push you forward
-#define SE_DamageRedirect			348 //Deal % damage to another target
 //#define SE_Unknown384				384	//not used
 //#define SE_Unknown385				385	//not used
-//last effect
-
-#define DF_Permanent		50
-#define SE_Justice					365 //Shin: This is stuff on VZTZ. works with DamageOnHeal to do the Damage part.
-#define SE_DelayedAttack			366
-#define SE_NecroCustom				367
 #define SE_IncreaseFrenzy			400 //Null used for custom pve event.
 #define SE_BuffSteal				401
 #define SE_TychusResEffects			402
 #define SE_TrainCustom				403
 #define SE_WrathOfVallon			404
+
+//last effect
+
+#define DF_Permanent		50
+
 //
 // solar: note this struct is historical, we don't actually need it to be
 // aligned to anything, but for maintaining it it is kept in the order that
