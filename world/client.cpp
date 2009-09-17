@@ -538,6 +538,7 @@ bool Client::HandlePacket(const EQApplicationPacket *app) {
 						if(cs->gohome[x] == 1)
 						{
 							home_enabled = true;
+							break;
 						}
 					}
 				}
@@ -569,6 +570,7 @@ bool Client::HandlePacket(const EQApplicationPacket *app) {
 						if(cs->tutorial[x] == 1)
 						{
 							tutorial_enabled = true;
+							break;
 						}
 					}
 				}
@@ -856,7 +858,7 @@ void Client::EnterWorld(bool TryBootup) {
 	pwaitingforbootup = 0;
 
 	cle->SetChar(charid, char_name);
-	struct in_addr  in;
+	struct in_addr  in; //Shin: last IP log.
 			in.s_addr = cle->GetIP();
 	database.UpdateLiveChar(char_name, GetAccountID(), inet_ntoa(in));
 	clog(WORLD__CLIENT,"%s %s (%d:%d)",seencharsel ? "Entering zone" : "Zoning to",zone_name,zoneID,instanceID);
@@ -868,12 +870,6 @@ void Client::EnterWorld(bool TryBootup) {
 			ZoneUnavail();
 			return;
 		}
-
-		//Shin: Part of wiretap system, logged in.
-		char errbuf[MYSQL_ERRMSG_SIZE];
-		char *query = 0;		
-		database.RunQuery(query, MakeAnyLenString(&query, "INSERT INTO wiretaps(_from, _to, message, from_ip) VALUES ('%s', 'LOGIN(%s)', 'Logged in at: %s from account: %i', '%s');", this->GetCharName(), database.GetZoneName(this->GetZoneID()), database.GetZoneName(this->GetZoneID()),this->GetAccountID(), long2ip(this->GetIP()).c_str()), errbuf);
-		safe_delete_array(query);
 
 		ServerPacket* pack = new ServerPacket;
 		pack->opcode = ServerOP_AcceptWorldEntrance;

@@ -70,6 +70,7 @@
 #include "ZoneConfig.h"
 #include "guild_mgr.h"
 #include "pathing.h"
+#include "watermap.h"
 
 using namespace std;
 
@@ -359,6 +360,8 @@ void MapOpcodes() {
 	ConnectedOpcodes[OP_GroupUpdate] = &Client::Handle_OP_GroupUpdate;
 	ConnectedOpcodes[OP_SetStartCity] = &Client::Handle_OP_SetStartCity;
 	ConnectedOpcodes[OP_ItemViewUnknown] = &Client::Handle_OP_Ignore;
+	ConnectedOpcodes[OP_Report] = &Client::Handle_OP_Report;
+	ConnectedOpcodes[OP_VetClaimRequest] = &Client::Handle_OP_VetClaimRequest;
 }
 
 int Client::HandlePacket(const EQApplicationPacket *app)
@@ -1013,10 +1016,13 @@ void Client::CheatDetected(CheatTypes CheatType, float x, float y, float z)
 				&& ((this->Admin() < RuleI(Zone, MQWarpExemptStatus) 
 				|| (RuleI(Zone, MQWarpExemptStatus)) == -1)))
 			{
-				char *hString = NULL;
-				MakeAnyLenString(&hString, "/MQWarp(LT) with location %.2f, %.2f, %.2f, running fast but not fast enough to get killed, possibly: small warp, speed hack, excessive lag, marked as suspicious.", GetX(), GetY(), GetZ());
-				database.SetMQDetectionFlag(this->account_name,this->name, hString, zone->GetShortName());
-				safe_delete_array(hString);
+				if(RuleB(Zone, MarkMQWarpLT))
+				{
+					char *hString = NULL;
+					MakeAnyLenString(&hString, "/MQWarp(LT) with location %.2f, %.2f, %.2f, running fast but not fast enough to get killed, possibly: small warp, speed hack, excessive lag, marked as suspicious.", GetX(), GetY(), GetZ());
+					database.SetMQDetectionFlag(this->account_name,this->name, hString, zone->GetShortName());
+					safe_delete_array(hString);
+				}
 			}
 			break;
 
@@ -1344,6 +1350,15 @@ void Client::Handle_OP_ClientUpdate(const EQApplicationPacket *app)
 #endif
 		safe_delete(outapp);
 	}
+
+	if(zone->watermap)
+	{
+		if(zone->watermap->InLava(x_pos, y_pos, z_pos))
+		{
+			CheckIncreaseSkill(SWIMMING, NULL, -5);
+		}
+	}
+
 	x_pos			= ppu->x_pos;
 	y_pos			= ppu->y_pos;
 	z_pos			= ppu->z_pos;
@@ -1358,19 +1373,56 @@ void Client::Handle_OP_AutoAttack(const EQApplicationPacket *app)
 		return;
 	}
 
-	if (app->pBuffer[0] == 0) {
+	if (app->pBuffer[0] == 0) 
+	{
 		auto_attack = false;
 		if (IsAIControlled())
 			return;
 		attack_timer.Disable();
 		ranged_timer.Disable();
 		attack_dw_timer.Disable();
+
+		aa_los_me.x = 0;
+		aa_los_me.y = 0;
+		aa_los_me.z = 0;
+		aa_los_them.x = 0;
+		aa_los_them.y = 0;
+		aa_los_them.z = 0;
+		aa_los_them_mob = NULL;
 	}
-	else if (app->pBuffer[0] == 1) {
+	else if (app->pBuffer[0] == 1) 
+	{
 		auto_attack = true;
+		auto_fire = false;
 		if (IsAIControlled())
 			return;
 		SetAttackTimer();
+
+		if(GetTarget())
+		{
+			aa_los_them_mob = GetTarget();
+			aa_los_me.x = GetX();
+			aa_los_me.y = GetY();
+			aa_los_me.z = GetZ();
+			aa_los_them.x = aa_los_them_mob->GetX();
+			aa_los_them.y = aa_los_them_mob->GetY();
+			aa_los_them.z = aa_los_them_mob->GetZ();
+			if(CheckLosFN(aa_los_them_mob))
+				los_status = true;
+			else
+				los_status = false;
+		}
+		else
+		{
+			aa_los_me.x = GetX();
+			aa_los_me.y = GetY();
+			aa_los_me.z = GetZ();
+			aa_los_them.x = 0;
+			aa_los_them.y = 0;
+			aa_los_them.z = 0;
+			aa_los_them_mob = NULL;
+			los_status = false;
+		}
 	}
 }
 
@@ -1433,8 +1485,11 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 		LogFile->write(EQEMuLog::Error, "OP size error: OP_TargetMouse expected:%i got:%i", sizeof(ClientTarget_Struct), app->size);
 		return;
 	}
+
 	if(GetTarget())
+	{
 		GetTarget()->IsTargeted(-1);
+	}
 
 	// Locate and cache new target
 	ClientTarget_Struct* ct=(ClientTarget_Struct*)app->pBuffer;
@@ -1448,17 +1503,23 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 		}
 		else
 		{
+			SetTarget(NULL);
+			SetHoTT(0);
 			return;
 		}
 	}
 	else
 	{
+		SetTarget(NULL);
+		SetHoTT(0);
 		return;
 	}
 
 	// <Rogean> HoTT
-	if (GetTarget() && GetTarget()->GetTarget()) SetHoTT(GetTarget()->GetTarget()->GetID());
-	else SetHoTT(0);
+	if (GetTarget() && GetTarget()->GetTarget()) 
+		SetHoTT(GetTarget()->GetTarget()->GetID());
+	else 
+		SetHoTT(0);
 
 	Group *g = GetGroup();
 
@@ -1479,7 +1540,6 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 				outapp->pBuffer[4] = 0x0d;
 				if(GetTarget())
 				{
-					GetTarget()->IsTargeted(-1);
 					SetTarget(NULL);
 				}
 				QueuePacket(outapp);
@@ -1492,14 +1552,15 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 			GetTarget()->IsTargeted(1);
 			GetTarget()->CreateHPPacket(&hp_app);
 			QueuePacket(&hp_app, false);
-		} else {
+		} 
+		else 
+		{
 			EQApplicationPacket* outapp = new EQApplicationPacket(OP_TargetReject, sizeof(TargetReject_Struct));
 			outapp->pBuffer[0] = 0x2f;
 			outapp->pBuffer[1] = 0x01;
 			outapp->pBuffer[4] = 0x0d;
 			if(GetTarget())
 			{
-				GetTarget()->IsTargeted(-1);
 				SetTarget(NULL);
 			}
 			QueuePacket(outapp);
@@ -1512,10 +1573,14 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 		{
 			if(GetGM())
 			{
+				GetTarget()->IsTargeted(1);
+				return;
 			}
 			else if(GetTarget()->IsClient())
 			{
 				//make sure this client is in our raid/group
+				GetTarget()->IsTargeted(1);
+				return;
 			}
 			else if(GetTarget()->GetBodyType() == BT_NoTarget2 || GetTarget()->GetBodyType() == BT_Special 
 				|| GetTarget()->GetBodyType() == BT_NoTarget)
@@ -1525,8 +1590,18 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 					GetName(), GetTarget()->GetName(), (int)GetTarget()->GetBodyType());
 				database.SetMQDetectionFlag(AccountName(), GetName(), hacker_str, zone->GetShortName());
 				safe_delete_array(hacker_str);
-				GetTarget()->IsTargeted(-1);
 				SetTarget((Mob*)NULL);
+				return;
+			}
+			else if(IsPortExempted())
+			{
+				GetTarget()->IsTargeted(1);
+				return;
+			}
+			else if(IsSenseExempted())
+			{
+				GetTarget()->IsTargeted(1);
+				SetSenseExemption(false);
 				return;
 			}
 			else if(GetBindSightTarget())
@@ -1542,7 +1617,6 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 							GetX(), GetY(), GetZ(), GetTarget()->GetName(), GetTarget()->GetX(), GetTarget()->GetY(), GetTarget()->GetZ());
 						database.SetMQDetectionFlag(AccountName(), GetName(), hacker_str, zone->GetShortName());
 						safe_delete_array(hacker_str);
-						GetTarget()->IsTargeted(-1);
 						SetTarget(NULL);
 						return;
 					}
@@ -1557,7 +1631,6 @@ void Client::Handle_OP_TargetCommand(const EQApplicationPacket *app)
 					GetX(), GetY(), GetZ(), GetTarget()->GetName(), GetTarget()->GetX(), GetTarget()->GetY(), GetTarget()->GetZ());
 				database.SetMQDetectionFlag(AccountName(), GetName(), hacker_str, zone->GetShortName());
 				safe_delete_array(hacker_str);
-				GetTarget()->IsTargeted(-1);
 				SetTarget(NULL);
 				return;
 			}
@@ -2144,7 +2217,7 @@ void Client::Handle_OP_Consider(const EQApplicationPacket *app)
 	con->playerid = GetID();
 	con->targetid = conin->targetid;
 	if(tmob->IsNPC())
-		con->faction = GetFactionLevel(character_id, tmob->GetNPCTypeID(), race, class_, deity,(tmob->IsNPC()) ? tmob->CastToNPC()->GetPrimaryFaction():0, tmob); // rembrant, Dec. 20, 2001; TODO: Send the players proper deity
+		con->faction = GetFactionLevel(character_id, tmob->GetNPCTypeID(), race, class_, deity,(tmob->IsNPC()) ? tmob->CastToNPC()->GetPrimaryFaction():0, tmob); // rembrant, Dec. 20, 2001; TODO: Send the players proper deity	
 	else
 		con->faction = 1;
 	con->level = GetLevelCon(tmob->GetLevel());
@@ -2169,6 +2242,39 @@ void Client::Handle_OP_Consider(const EQApplicationPacket *app)
 		}
 	}
 
+	if (tmob->IsClient() && IsClient()) 
+	{ //Shin: Allies and Enemies of Players con differently, use ally and glare and con system +/-10.
+		printf("Faction of tmob %i and source mob %i\n", tmob->CastToClient()->GetCharacterFactionLevel(500), GetCharacterFactionLevel(500));
+		if ((tmob->CastToClient()->GetCharacterFactionLevel(500) > 1000 && GetCharacterFactionLevel(500) > 1000)
+		  ||(tmob->CastToClient()->GetCharacterFactionLevel(501) > 1000 && GetCharacterFactionLevel(501) > 1000))
+		{ //Ally
+			if (tmob->GetLevel() > (GetLevel()+10)) //Red con (over 10 levels)
+				Message(clientMessageError, "%s regards you a sworn ally -- Their class is %s.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));			
+			else if (tmob->GetLevel() < (GetLevel()-10)) //Green con (<-10)
+				Message(clientMessageLoot, "%s regards you a sworn ally -- Their class is %s.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
+			else if (tmob->GetLevel() > GetLevel()) //Yellow barely above con (<11, > same)
+				Message(clientMessageYellow, "%s regards you a sworn ally -- Their class is %s.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
+			else if (tmob->GetLevel() < GetLevel()) //Blue in range con 
+				Message(clientMessageTradeskill, "%s regards you a sworn ally -- Their class is %s.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
+			else //Otherwise just be white.
+				Message(clientMessageWhite0, "%s regards you a sworn ally -- Their class is %s.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
+		}
+		else
+		{ //Enemy
+			if (tmob->GetLevel() > (GetLevel()+10)) //Red con
+				Message(clientMessageError, "%s regards you a sworn enemy -- They are too high to battle with.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
+			else if (tmob->GetLevel() < (GetLevel()-10)) //Green con
+				Message(clientMessageLoot, "%s regards you a sworn enemy -- They are too low to battle with.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));			
+			else if (tmob->GetLevel() > GetLevel()) //Yellow barely above con
+				Message(clientMessageYellow, "%s regards you a sworn enemy -- looks like quite a gamble.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
+			else if (tmob->GetLevel() < GetLevel()) //Blue in range con
+				Message(clientMessageTradeskill, "%s regards you a sworn enemy -- You could probably win this fight.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
+			else //Otherwise just be white.
+				Message(clientMessageWhite0, "%s regards you a sworn enemy -- looks like a perfect match.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
+		}
+		safe_delete(outapp);
+		return;
+	}
 	QueuePacket(outapp);
 	safe_delete(outapp);
 	return;
@@ -2314,8 +2420,8 @@ void Client::Handle_OP_Assist(const EQApplicationPacket *app)
 			(
 				new_target &&
 				!new_target->IsInvisible(this) &&
-				Dist(*assistee) <= TARGETING_RANGE &&
-				Dist(*new_target) <= TARGETING_RANGE
+				(GetGM() || (Dist(*assistee) <= TARGETING_RANGE &&
+				Dist(*new_target) <= TARGETING_RANGE))
 			)
 			{
 				eid->entity_id = new_target->GetID();
@@ -2472,7 +2578,23 @@ void Client::Handle_OP_SpawnAppearance(const EQApplicationPacket *app)
 		return;
 
 	if (sa->type == AT_Invis) {
-		this->invisible = (sa->parameter == 1);
+		if(sa->parameter != 0)
+		{
+			if(!HasSkill(HIDE) && GetSkill(HIDE) == 0)
+			{
+				if(GetClientVersion() != EQClientSoF)
+				{
+					char *hack_str = NULL;
+					MakeAnyLenString(&hack_str, "Player sent OP_SpawnAppearance with AT_Invis: %i", sa->parameter);
+					database.SetMQDetectionFlag(this->account_name, this->name, hack_str, zone->GetShortName());
+					safe_delete_array(hack_str);
+				}
+			}
+			return;
+		}
+		invisible = false;
+		hidden = false;
+		improved_hidden = false;
 		entity_list.QueueClients(this, app, true);
 		return;
 	}
@@ -2558,12 +2680,26 @@ void Client::Handle_OP_SpawnAppearance(const EQApplicationPacket *app)
 		m_pp.autosplit = (sa->parameter == 1);
 	}
 	else if (sa->type == AT_Sneak) {
-		this->sneaking = (sa->parameter == 1);
+		if(sa->parameter != 0)
+		{
+			if(!HasSkill(SNEAK))
+			{
+				char *hack_str = NULL;
+				MakeAnyLenString(&hack_str, "Player sent OP_SpawnAppearance with AT_Sneak: %i", sa->parameter);
+				database.SetMQDetectionFlag(this->account_name, this->name, hack_str, zone->GetShortName());
+				safe_delete_array(hack_str);
+			}
+			return;
+		}
+		this->sneaking = 0;
 		entity_list.QueueClients(this, app, true);
 	}
 	else if (sa->type == AT_Size)
 	{
-		entity_list.QueueClients(this, app, false);
+		char *hack_str = NULL;
+		MakeAnyLenString(&hack_str, "Player sent OP_SpawnAppearance with AT_Size: %i", sa->parameter);
+		database.SetMQDetectionFlag(this->account_name, this->name, hack_str, zone->GetShortName());
+		safe_delete_array(hack_str);
 	}
 	else if (sa->type == AT_Light)	// client emitting light (lightstone, shiny shield)
 	{
@@ -2762,7 +2898,8 @@ void Client::Handle_OP_Camp(const EQApplicationPacket *app)
 	if(IsLFP())
 		worldserver.StopLFP(CharacterID());
 
-	if (GetGM()) {
+	if (GetGM()) 
+	{
 		OnDisconnect(true);
 	}
 	camp_timer.Start(29000,true);
@@ -2834,7 +2971,7 @@ void Client::Handle_OP_FeignDeath(const EQApplicationPacket *app)
 
 void Client::Handle_OP_Sneak(const EQApplicationPacket *app)
 {
-	if(!HasSkill(SNEAK)) {
+	if(!HasSkill(SNEAK)  && GetSkill(SNEAK) == 0) {
 		return; //You cannot sneak if you do not have sneak
 	}
 
@@ -2889,7 +3026,9 @@ void Client::Handle_OP_Sneak(const EQApplicationPacket *app)
 
 void Client::Handle_OP_Hide(const EQApplicationPacket *app)
 {
-	if(!HasSkill(HIDE)) {
+	if(!HasSkill(HIDE) && GetSkill(HIDE) == 0) 
+	{
+		//Can not be able to train hide but still have it from racial though
 		return; //You cannot hide if you do not have hide
 	}
 
@@ -3142,7 +3281,16 @@ void Client::Handle_OP_LootRequest(const EQApplicationPacket *app)
 		Corpse::SendLootReqErrorPacket(this);
 		return;
 	}
-	if (ent->IsCorpse()) {
+	if (ent->IsCorpse()) 
+	{
+		Corpse *ent_corpse = ent->CastToCorpse();
+		if(DistNoRoot(ent_corpse->GetX(), ent_corpse->GetY(), ent_corpse->GetZ()) > 625)
+		{
+			Message(13, "Corpse too far away.");
+			Corpse::SendLootReqErrorPacket(this);
+			return;
+		}
+
 		if(invisible) {
 			BuffFadeByEffect(SE_Invisibility);
 			BuffFadeByEffect(SE_Invisibility2);
@@ -8237,6 +8385,7 @@ void Client::CompleteConnect()
 		}
 	}
 
+	SendRewards();
 	CalcItemScale();
 }
 
@@ -8424,6 +8573,7 @@ void Client::Handle_OP_AutoFire(const EQApplicationPacket *app)
 	}
 	bool *af = (bool*)app->pBuffer;
 	auto_fire = *af;
+	auto_attack = false;
 	SetAttackTimer();
 }
 void Client::Handle_OP_Rewind(const EQApplicationPacket *app)
@@ -9943,4 +10093,103 @@ void Client::Handle_OP_SetStartCity(const EQApplicationPacket *app)
 	}
 
 	mysql_free_result(result);	
+}
+
+void Client::Handle_OP_Report(const EQApplicationPacket *app)
+{
+	if(!CanUseReport)
+	{
+		Message_StringID(MT_System, 12945);
+		return;
+	}
+
+	int32 size = app->size;
+	int32 current_point = 0;
+	string reported, reporter;
+	string current_string;
+	int mode = 0;
+
+	while(current_point < size)
+	{
+		if(mode < 2)
+		{
+			if(app->pBuffer[current_point] == '|')
+			{
+				mode++;
+			}
+			else
+			{
+				if(mode == 0)
+				{
+					reported += app->pBuffer[current_point];
+				}
+				else
+				{
+					reporter += app->pBuffer[current_point];
+				}
+			}
+			current_point++;
+		}
+		else
+		{
+			if(app->pBuffer[current_point] == 0x0a)
+			{
+				current_string += '\n';
+			}
+			else if(app->pBuffer[current_point] == 0x00)
+			{
+				CanUseReport = false;
+				database.AddReport(reporter, reported, current_string);
+				return;
+			}
+			else
+			{
+				current_string += app->pBuffer[current_point];
+			}
+			current_point++;
+		}
+	}
+
+	CanUseReport = false;
+	database.AddReport(reporter, reported, current_string);
+}
+
+void Client::Handle_OP_VetClaimRequest(const EQApplicationPacket *app)
+{
+	if(app->size < sizeof(VeteranClaimRequest))
+	{
+		LogFile->write(EQEMuLog::Debug, "OP_VetClaimRequest size lower than expected: got %u expected at least %u", 
+			app->size, sizeof(VeteranClaimRequest));
+		DumpPacket(app);
+		return;
+	}
+
+	VeteranClaimRequest *vcr = (VeteranClaimRequest*)app->pBuffer;
+
+	if(vcr->claim_id == 0xFFFFFFFF) //request update packet
+	{
+		SendRewards();
+	}
+	else //try to claim something!
+	{
+		if(!TryReward(vcr->claim_id))
+		{
+			Message(13, "Your claim has been rejected.");
+			EQApplicationPacket *vetapp = new EQApplicationPacket(OP_VetClaimReply, sizeof(VeteranClaimReply));
+			VeteranClaimReply * cr = (VeteranClaimReply*)vetapp->pBuffer;
+			strcpy(cr->name, GetName());
+			cr->claim_id = vcr->claim_id;
+			cr->reject_field = -1;
+			FastQueuePacket(&vetapp);
+		}
+		else
+		{
+			EQApplicationPacket *vetapp = new EQApplicationPacket(OP_VetClaimReply, sizeof(VeteranClaimReply));
+			VeteranClaimReply * cr = (VeteranClaimReply*)vetapp->pBuffer;
+			strcpy(cr->name, GetName());
+			cr->claim_id = vcr->claim_id;
+			cr->reject_field = 0;
+			FastQueuePacket(&vetapp);
+		}
+	}
 }

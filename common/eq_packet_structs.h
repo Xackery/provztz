@@ -4051,6 +4051,36 @@ struct DisciplineTimer_Struct
 /*08*/ uint32  Unknown08;
 };
 
+struct InternalVeteranRewardItem
+{
+/*000*/	int32 item_id;
+/*004*/ int32 charges;
+/*008*/	char item_name[64];
+};
+
+struct InternalVeteranReward
+{
+/*000*/	int32 claim_id;
+/*004*/ int32 number_available;
+/*008*/	int32 claim_count;
+/*012*/	InternalVeteranRewardItem items[8];
+};
+
+struct VeteranClaimReply
+{
+/*000*/	char name[64];
+/*064*/	int32 claim_id;
+/*068*/	int32 reject_field;
+/*072*/	int32 unknown072;
+};
+
+struct VeteranClaimRequest
+{
+/*000*/	char name_data[64]; //name + other data
+/*064*/	int32 claim_id;
+/*068*/	int32 unknown068;
+};
+
 //old structures live here:
 #include "eq_old_structs.h"
 

@@ -726,6 +726,21 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 				break;
 			}
 
+
+			case SE_SenseDead:
+			case SE_SenseSummoned:
+			case SE_SenseAnimals:
+			{
+#ifdef SPELL_EFFECT_SPAM
+				snprintf(effect_desc, _EDLEN, "Sense Target: %+i", effect_value);
+#endif
+				if(IsClient())
+				{
+					CastToClient()->SetSenseExemption(true);
+				}
+				break;
+			}
+
 			case SE_Fear:
 			{
 #ifdef SPELL_EFFECT_SPAM
@@ -1093,33 +1108,6 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 				// solar: handled by client
 				// TODO: blind flag?
 				break;
-			}
-
-			case SE_SenseDead:
-			{
-#ifdef SPELL_EFFECT_SPAM
-				snprintf(effect_desc, _EDLEN, "Sense Dead");
-#endif
-				// solar: handled by client
-				break;
-			}
-
-			case SE_SenseSummoned:
-			{
-#ifdef SPELL_EFFECT_SPAM
-				snprintf(effect_desc, _EDLEN, "Sense Summoned");
-#endif
-				// solar: handled by client
-				break;
-			}
-
-			case SE_SenseAnimals:
-			{
-#ifdef SPELL_EFFECT_SPAM
-				snprintf(effect_desc, _EDLEN, "Sense Animals");
-#endif
-				break;
-				// solar: handled by client
 			}
 
 			case SE_Rune:

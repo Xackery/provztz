@@ -3139,6 +3139,16 @@ bool Mob::IsImmuneToSpell(int16 spell_id, Mob *caster)
 	if(caster == NULL)
 		return(false);
 	
+	/*//Shin: Can't cast on ally faction mobs.
+	CastToClient()->Message(15, "IMMUNE2SPELL" ); //Shin: Debug line
+	if (IsClient())
+	{
+		if (1 == CastToClient()->GetFactionLevel(CastToClient()->CharacterID(), caster->CastToNPC()->GetNPCTypeID(), CastToClient()->GetRace(), CastToClient()->GetClass(), CastToClient()->GetDeity(), caster->CastToNPC()->GetPrimaryFaction(), caster))
+		{
+			CastToClient()->Message(10, "You can't cast magic on this ally NPC!"); //Shin: Debug line
+			return 1;
+		}
+	}*/
 	//TODO: this function loops through the effect list for 
 	//this spell like 10 times, this could easily be consolidated
 	//into one loop through with a switch statement.
@@ -3282,6 +3292,17 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 		mlog(SPELLS__RESISTS, "We are immune to magic, so we fully resist the spell %d", spell_id);
 		return(0);
 	}
+
+	/*//Shin: Can't cast on ally faction mobs.
+	CastToClient()->Message(15, "MAGICCHECK" ); //Shin: Debug line
+	if (IsClient())
+	{
+		if (1 == CastToClient()->GetFactionLevel(CastToClient()->CharacterID(), caster->CastToNPC()->GetNPCTypeID(), CastToClient()->GetRace(), CastToClient()->GetClass(), CastToClient()->GetDeity(), caster->CastToNPC()->GetPrimaryFaction(), caster))
+		{
+			CastToClient()->Message(10, "You can't cast magic this ally NPC!"); //Shin: Debug line
+			return 0;
+		}
+	}*/
 	
 	if(resist_type == RESIST_NONE) {
 		//unresistable...
@@ -3600,7 +3621,6 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 			resistchance = (resistchance * (100-focusResist) / 100);
 		}
 	}
-
 
 #ifdef EQBOTS
 

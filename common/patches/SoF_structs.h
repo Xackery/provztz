@@ -3954,6 +3954,21 @@ struct AugmentInfo_Struct
 /*076*/
 };
 
+struct VeteranRewardItem
+{
+/*000*/	int32 item_id;
+/*004*/	int32 charges;
+/*008*/	char item_name[64];
+};
+
+struct VeteranReward
+{
+/*000*/	int32 claim_id;
+/*004*/	int32 number_available;
+/*008*/	int32 claim_count;
+/*012*/	VeteranRewardItem items[8];
+};
+
 	};	//end namespace structs
 };	//end namespace SoF
 
