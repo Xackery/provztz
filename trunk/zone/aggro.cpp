@@ -512,16 +512,6 @@ bool Mob::IsAttackAllowed(Mob *target, bool isSpellAttack)
 	if(this == target)	// you can attack yourself
 		return true;
 
-	//CastToClient()->Message(15, "ATTACKFAIL" ); //Shin: Debug line
-	if (IsClient() && target->IsNPC())
-	{ //Shin: Can't attack ally faction monsters.
-		if ((target->GetPrimaryFaction() == 500 && CastToClient()->GetCharacterFactionLevel(500) > 1000)
-		  ||(target->GetPrimaryFaction() == 501 && CastToClient()->GetCharacterFactionLevel(501) > 1000))
-		{			
-			CastToClient()->Message(10, "You can't attack this ally NPC!");
-			return 0;
-		}
-	}
 	// can't damage own pet (applies to everthing)
 	Mob *target_owner = target->GetOwner();
 	Mob *our_owner = GetOwner();
@@ -530,6 +520,27 @@ bool Mob::IsAttackAllowed(Mob *target, bool isSpellAttack)
 	else if(our_owner && our_owner == target)
 		return false;
 	
+	//CastToClient()->Message(15, "ATTACKFAIL" ); //Shin: Debug line
+	if (IsClient() && target->IsNPC())
+	{ //Shin: Can't attack ally faction monsters.
+		if ((target->GetPrimaryFaction() == 500 && CastToClient()->GetCharacterFactionLevel(500) > 1000)
+		  ||(target->GetPrimaryFaction() == 501 && CastToClient()->GetCharacterFactionLevel(501) > 1000))
+		{			
+			CastToClient()->Message(10, "You can't attack this ally NPC!");
+			return false;
+		}
+	}
+	//Pet Check.
+	
+	if (our_owner && our_owner->IsClient() && target->IsNPC())
+	{ //Shin: Pets can't attackeither.
+		if ((target->GetPrimaryFaction() == 500 && our_owner->CastToClient()->GetCharacterFactionLevel(500) > 1000)
+		  ||(target->GetPrimaryFaction() == 501 && our_owner->CastToClient()->GetCharacterFactionLevel(501) > 1000))
+		{			
+			//our_owner->CastToClient()->Message(10, "Your pet can't attack this ally NPC!");
+			return false;
+		}
+	}
 	//cannot hurt untargetable mobs
 	bodyType bt = target->GetBodyType();
 
@@ -567,13 +578,15 @@ bool Mob::IsAttackAllowed(Mob *target, bool isSpellAttack)
 			
 				int c1_guild = c1->GuildID();
 				int c2_guild = c2->GuildID();
+				//printf("c1: %i c2: %i", c1->GetCharacterFactionLevel(500),c2->GetCharacterFactionLevel(500)); //Shin: Debug line
 
 				if	// TheLieka:  If they are: Flagged for PvP; +/- 10 level; level 7+; not in the same guild: Allow Fight.
 				( 
 					((c1_level + 10) >= c2_level) && 
 					((c2_level + 10) >= c1_level) && 
 					((c1_level >= 7) && (c2_level >= 7)) &&
-					((c1_guild != c2_guild) || (c1_guild == GUILD_NONE) || (c1_guild == 0) || (c2_guild == GUILD_NONE) || (c2_guild == 0)) 
+					//((c1_guild != c2_guild) || (c1_guild == GUILD_NONE) || (c1_guild == 0) || (c2_guild == GUILD_NONE) || (c2_guild == 0)
+					((c1->GetCharacterFactionLevel(500) > 1000 && c2->GetCharacterFactionLevel(501) > 1000) || (c1->GetCharacterFactionLevel(501) > 1000 && c2->GetCharacterFactionLevel(500) > 1000))
 					//&& c1->GetPVP() && //Shin: PvP status not needed for my server. Blue or Red Named you going to PVP.
 					//c2->GetPVP()
 				)
@@ -738,13 +751,14 @@ bool Mob::IsBeneficialAllowed(Mob *target)
 			{
 				c1 = mob1->CastToClient();
 				c2 = mob2->CastToClient();
-				int c1_guild = c1->GuildID(); //Shin: Spell +/- 10 lvl and >7 check code. TODO: Add a check to allow for non-heal beneficials?
-				int c2_guild = c2->GuildID();
-				int c1_level = c1->GetLevel(); // Level of Client 1
-				int c2_level = c2->GetLevel(); // Level of Client 2	
+				//int c1_guild = c1->GuildID(); //Shin: Spell +/- 10 lvl and >7 check code. TODO: Add a check to allow for non-heal beneficials?
+				//int c2_guild = c2->GuildID();
+				//int c1_level = c1->GetLevel(); // Level of Client 1
+				//int c2_level = c2->GetLevel(); // Level of Client 2	
 				if ( //Lieka Begin Edit:  Allow beneficial spells if Your target is in your guild or you are within 10 levels of your target.
-					((c1_guild == c2_guild) && (c1_guild != GUILD_NONE) && (c1_guild != 0) && (c2_guild != GUILD_NONE) && (c2_guild != 0)) ||
-					(((c1_level + 10) >= c2_level) && ((c2_level + 10) >= c1_level)) // && c1->GetPVP() == c2->GetPVP()) //Shin: No PVP flag needed
+					((c1->GetCharacterFactionLevel(500) > 1000 && c2->GetCharacterFactionLevel(500) > 1000) || (c1->GetCharacterFactionLevel(501) > 1000 && c2->GetCharacterFactionLevel(501) > 1000))
+					//((c1_guild == c2_guild) && (c1_guild != GUILD_NONE) && (c1_guild != 0) && (c2_guild != GUILD_NONE) && (c2_guild != 0)) ||
+					//(((c1_level + 10) >= c2_level) && ((c2_level + 10) >= c1_level)) // && c1->GetPVP() == c2->GetPVP()) //Shin: No PVP flag needed
 					)
 					return true;
 				else if	// if they're dueling they can heal each other too

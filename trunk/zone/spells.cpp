@@ -220,6 +220,16 @@ bool Mob::CastSpell(int16 spell_id, int16 target_id, int16 slot,
 		return(false);
 	}
 	
+	//Shin: Disable all gate/teleport spells. Later when spells are fine tuned I'll check zones to disable.
+	if (IsClient())
+	{
+		if (IsEffectInSpell(spell_id, SE_Teleport) || IsEffectInSpell(spell_id, SE_Translocate) || IsEffectInSpell(spell_id, SE_Gate) || IsEffectInSpell(spell_id, SE_BindAffinity)) 
+		{
+			Message(13,"This spell has temporarily been disabled on this server.");
+			CastToClient()->SendSpellBarEnable(spell_id);
+			return(false);
+		}
+	}
 	// check for fizzle
 	// note that CheckFizzle itself doesn't let NPCs fizzle,
 	// but this code allows for it.
@@ -3292,7 +3302,6 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 		mlog(SPELLS__RESISTS, "We are immune to magic, so we fully resist the spell %d", spell_id);
 		return(0);
 	}
-
 	/*//Shin: Can't cast on ally faction mobs.
 	CastToClient()->Message(15, "MAGICCHECK" ); //Shin: Debug line
 	if (IsClient())
@@ -3510,7 +3519,9 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 			break;
 		}
 	}
-	if(this->IsClient() && (caster->IsClient() || (caster->IsPet() && caster->GetOwner()->IsClient()))) {
+	//Shin: Partial mod is making a crash.. Not sure why.
+	//if(this->IsClient() && (caster->IsClient() || (caster->IsPet() && caster->GetOwner()->IsClient()))) {
+	if(this->IsClient() && (caster->IsClient())) {
 	if (spell_id != 0 && IsRootSpell(spell_id)){
 		specialcases += 15;
 		partialmod = 45;
@@ -3537,7 +3548,8 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 	}
 	if (caster->IsClient() && IsMob() && IsFearSpell(spell_id)){
 		specialcases += 75;
-	}
+	} //Shin: END OF PARTIAL MOD
+
 	// value in spell to adjust base resist by
 	//if(spell_id != 0)
 	//	resist += spells[spell_id].ResistDiff;
@@ -3549,9 +3561,9 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 	//float lvldiff = caster_level - target_level;
 	//resist += (RuleI(Spells, ResistPerLevelDiff) * (-lvldiff) / 10);
 	float lvldiff; //Shin: PvP system level difference.
-	if(caster->IsPet())
-		lvldiff = (caster->GetOwner()->GetLevel()) - target_level;
-	else
+	//if(caster->IsPet()) //Commented this out temporarily, crash
+	//	lvldiff = (caster->GetOwner()->GetLevel()) - target_level;
+	//else
 		lvldiff = caster_level - target_level;
 	float partialresist = 0;
 	float partialrange = 0;

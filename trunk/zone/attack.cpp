@@ -692,7 +692,7 @@ int Mob::GetWeaponDamage(Mob *against, const Item_Struct *weapon_item) {
 		return 0;
 	}
 
-	CastToClient()->Message(15, "WEAPDMG" ); //Shin: Debug line
+	//CastToClient()->Message(15, "WEAPDMG" ); //Shin: Debug line
 	if (IsClient())
 	{ //Shin: Can't attack ally faction monsters.
 		if ((against->GetPrimaryFaction() == 500 && CastToClient()->GetCharacterFactionLevel(500) > 1000)
@@ -808,7 +808,7 @@ int Mob::GetWeaponDamage(Mob *against, const ItemInst *weapon_item)
 		return 0;
 	}	
 	
-	CastToClient()->Message(15, "WEAPDMGitem" ); //Shin: Debug line
+	//CastToClient()->Message(15, "WEAPDMGitem" ); //Shin: Debug line
 	if (IsClient())
 	{ //Shin: Can't attack ally faction monsters.
 		if ((against->GetPrimaryFaction() == 500 && CastToClient()->GetCharacterFactionLevel(500) > 1000)
@@ -818,6 +818,7 @@ int Mob::GetWeaponDamage(Mob *against, const ItemInst *weapon_item)
 			return 0;
 		}
 	}
+
 	//check for items being illegally attained
 	if(weapon_item){
 		const Item_Struct *mWeaponItem = weapon_item->GetItem();
@@ -1092,8 +1093,8 @@ bool Client::Attack(Mob* other, int Hand, bool bRiposte)
 	/// Now figure out damage
 	int damage = 0;
 	int8 mylevel = GetLevel() ? GetLevel() : 1;
-	int weapon_damage = GetWeaponDamage(other, weapon);		
-		
+	int weapon_damage = GetWeaponDamage(other, weapon);
+	
 	//if weapon damage > 0 then we know we can hit the target with this weapon
 	//otherwise we cannot and we set the damage to -5 later on
 	if(weapon_damage > 0){
@@ -1198,7 +1199,7 @@ bool Client::Attack(Mob* other, int Hand, bool bRiposte)
 				max_hit *= 0.9;							   
 			}
 		}
-		this->Message(15, "max_hit = %i min_hit = %i", max_hit, min_hit); //Shin: Debug line
+		//this->Message(15, "max_hit = %i min_hit = %i", max_hit, min_hit); //Shin: Debug line
 		mlog(COMBAT__DAMAGE, "Damage calculated to %d (min %d, max %d, str %d, skill %d, DMG %d, lv %d)",
 			damage, min_hit, max_hit, GetSTR(), GetSkill(skillinuse), weapon_damage, mylevel);
 
@@ -1355,8 +1356,7 @@ void Client::Damage(Mob* other, sint32 damage, int16 spell_id, SkillType attack_
 			PvPMitigation = 60; //Shin: From 80 to 60 on VZTZ
 		//else //Shin: 75 is used for all non-archery.
 		//	PvPMitigation = 67;
-		this->Message(15, "PvP Mitigation = %i", PvPMitigation); //Shin: Debug
-		//other->Message(15, "PvP Mitigation = %i", PvPMitigation);
+		//this->Message(15, "PvP Mitigation = %i", PvPMitigation); //Shin: Debug
 		damage = (damage * PvPMitigation) / 100;
 	}
 			
@@ -1787,6 +1787,7 @@ bool NPC::Attack(Mob* other, int Hand, bool bRiposte)	 // Kaiyodo - base functio
 	}
 	
 	int weapon_damage = GetWeaponDamage(other, weapon);
+	
 	//do attack animation regardless of whether or not we can hit below
 	sint16 charges = 0;
 	ItemInst weapon_inst(weapon, charges);
@@ -2201,6 +2202,13 @@ void NPC::Death(Mob* killerMob, sint32 damage, int16 spell, SkillType attack_ski
 							break;
 						case 3:
 							if(r->members[x].member && r->members[x].IsLooter){
+								corpse->AllowMobLoot(r->members[x].member, i);
+								i++;
+							}
+							break;
+						case 4:
+							if(r->members[x].member)
+							{
 								corpse->AllowMobLoot(r->members[x].member, i);
 								i++;
 							}

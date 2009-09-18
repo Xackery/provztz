@@ -2221,11 +2221,10 @@ void Client::Handle_OP_Consider(const EQApplicationPacket *app)
 	else
 		con->faction = 1;
 	con->level = GetLevelCon(tmob->GetLevel());
-	if(zone->IsPVPZone()) {
+	/*if(zone->IsPVPZone()) {
 		if (!tmob->IsNPC() )
 			con->pvpcon = tmob->CastToClient()->GetPVP();
-	}
-
+	}*/	
 	// Mongrel: If we're feigned show NPC as indifferent
 	if (tmob->IsNPC())
 	{
@@ -2248,7 +2247,9 @@ void Client::Handle_OP_Consider(const EQApplicationPacket *app)
 		if ((tmob->CastToClient()->GetCharacterFactionLevel(500) > 1000 && GetCharacterFactionLevel(500) > 1000)
 		  ||(tmob->CastToClient()->GetCharacterFactionLevel(501) > 1000 && GetCharacterFactionLevel(501) > 1000))
 		{ //Ally
-			if (tmob->GetLevel() > (GetLevel()+10)) //Red con (over 10 levels)
+			if (tmob->GetLevel() < 8) //Green con for non-PvP players.
+				Message(clientMessageLoot, "%s regards you a sworn ally -- Their class is %s.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
+			else if (tmob->GetLevel() > (GetLevel()+10)) //Red con (over 10 levels)
 				Message(clientMessageError, "%s regards you a sworn ally -- Their class is %s.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));			
 			else if (tmob->GetLevel() < (GetLevel()-10)) //Green con (<-10)
 				Message(clientMessageLoot, "%s regards you a sworn ally -- Their class is %s.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
@@ -2261,7 +2262,9 @@ void Client::Handle_OP_Consider(const EQApplicationPacket *app)
 		}
 		else
 		{ //Enemy
-			if (tmob->GetLevel() > (GetLevel()+10)) //Red con
+			if (tmob->GetLevel() < 8) //Green con for non-PvP players
+				Message(clientMessageLoot, "%s regards you a sworn enemy -- They are too low to battle with.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));			
+			else if (tmob->GetLevel() > (GetLevel()+10)) //Red con
 				Message(clientMessageError, "%s regards you a sworn enemy -- They are too high to battle with.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));
 			else if (tmob->GetLevel() < (GetLevel()-10)) //Green con
 				Message(clientMessageLoot, "%s regards you a sworn enemy -- They are too low to battle with.", tmob->GetCleanName(), GetEQClassName(tmob->GetClass()));			

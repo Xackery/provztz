@@ -1125,6 +1125,7 @@ void EntityList::SendZoneSpawnsBulk(Client* client)
 		{
 			if(spawn->IsClient() && spawn->CastToClient()->GMHideMe(client))
 				continue;
+			//Shin: When you zone in and range > this spot is likely where it'll be..? TODO
 			memset(&ns, 0, sizeof(NewSpawn_Struct));
 			spawn->FillSpawnStruct(&ns, client);
 			bzsp->AddSpawn(&ns);
@@ -1139,7 +1140,12 @@ void EntityList::SendZonePVPUpdates(Client *to) {
 	
 	iterator.Reset();
 	while(iterator.MoreElements()) {
-		Client *c = iterator.GetData();
+		Client *c = iterator.GetData();				
+		if (c->IsClient() && c->GetCharacterFactionLevel(501) > 1000)
+		{  //Shin: If Client is evil faction, mark them red.
+			c->SendAppearancePacket(AT_PVP, 1, true, false, to);
+		}
+
 		if(c->GetPVP())
 			c->SendAppearancePacket(AT_PVP, c->GetPVP(), true, false, to);
 		iterator.Advance();
