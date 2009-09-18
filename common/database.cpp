@@ -1801,10 +1801,10 @@ int32 Database::GetCharacterInfo(const char* iName, int32* oAccID, int32* oZoneI
 	}
 	return 0;
 }
-
+//Shin: Added lastlogin to the DB.
 bool Database::UpdateLiveChar(char* charname,int32 lsaccount_id, char* loginip) {
 	char errbuf[MYSQL_ERRMSG_SIZE];
-    char *query = 0; //Shin: Added update lastlogin_ip query tweak.
+    char *query = 0;
 	if (!RunQuery(query, MakeAnyLenString(&query, "UPDATE account SET charname='%s', lastlogin_ip='%s' WHERE id=%i;",charname, loginip, lsaccount_id), errbuf)) {
 		cerr << "Error in UpdateLiveChar query '" << query << "' " << errbuf << endl;
 		safe_delete_array(query);
