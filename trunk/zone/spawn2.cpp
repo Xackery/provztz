@@ -439,7 +439,7 @@ void Spawn2::SpawnConditionChanged(const SpawnCondition &c, sint16 old_value) {
 		break;
 	case SpawnCondition::DoRepop:
 		_log(SPAWNS__CONDITIONS, "Spawn2 %d: Our condition is now %s. Preforming a repop.", spawn2_id, new_state?"enabed":"disabled");
-		if(npcthis != NULL)
+		if(npcthis != NULL && npcthis->IsNPC())
 			npcthis->Depop(false);	//remove the current mob
 		Repop();	//repop
 		break;
