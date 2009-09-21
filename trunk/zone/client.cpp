@@ -1676,7 +1676,7 @@ void Client::FillSpawnStruct(NewSpawn_Struct* ns, Mob* ForWho)
 	ns->spawn.gm		= GetGM() ? 1 : 0;
 	ns->spawn.guildID	= GuildID();
 //	ns->spawn.linkdead	= IsLD() ? 1 : 0;
-//	ns->spawn.pvp		= GetPVP() ? 1 : 0;
+//	ns->spawn.pvp		= (GetCharacterFactionLevel(501) > 1000) ? 1 : 0; //Shin: set PVP packet to yes if evil.
 
 
 	strcpy(ns->spawn.title, m_pp.title);
@@ -2166,9 +2166,10 @@ void Client::SetPVP(bool toggle) {
 	m_pp.pvp = toggle ? 1 : 0;
 
 	if(GetPVP())
-		this->Message_StringID(13,PVP_ON);
+		//this->Message_StringID(13,PVP_ON);
+		Message(4, "You are now flagged as evil!");
 	else
-		Message(13, "You no longer follow the ways of discord.");
+		Message(4, "You are now flagged as good!");
 
 	SendAppearancePacket(AT_PVP, GetPVP());
 	Save();

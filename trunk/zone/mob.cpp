@@ -559,7 +559,7 @@ float Mob::_GetMovementSpeed(int mod) const {
 	//runspeed cap.
 	if(IsClient())
 	{
-		if(GetClass() == BARD) {
+		if(GetClass() == BARD || GetClass() == DIRGE) {
 			//this extra-high bard cap should really only apply if they have AAs
 			if(speed_mod > 1.74)
 				speed_mod = 1.74;
@@ -609,6 +609,7 @@ char Mob::GetCasterClass() const {
 
 	case SHADOWKNIGHT:
 	case BARD:
+	case DIRGE:
 	case NECROMANCER:
 	case WIZARD:
 	case MAGICIAN:
@@ -1667,6 +1668,7 @@ bool Mob::CanThisClassDualWield(void) const //Dual wield not Duel, busy someone 
 			break;
 		}
 	case BARD:
+	case DIRGE:
 	case RANGER:
 	case BARDGM:
 	case RANGERGM:
@@ -1792,6 +1794,7 @@ bool Mob::IsWarriorClass(void) const
 	case BERSERKER:
 	case BERSERKERGM:
 	case BARD:
+	case DIRGE:
 	case BARDGM:
 		{
 			return true;
@@ -1826,6 +1829,7 @@ bool Mob::CanThisClassParry(void) const
 		break;
 		}
 	case BARD:
+	case DIRGE:
 	case BARDGM:
 		{
 		if(GetLevel() < 53)
@@ -1892,6 +1896,7 @@ bool Mob::CanThisClassDodge(void) const
 			break;
 		}
 	case BARD:
+	case DIRGE:
 	case BEASTLORD:
 	case SHADOWKNIGHT:
 	case BERSERKER:
@@ -1984,6 +1989,7 @@ bool Mob::CanThisClassRiposte(void) const //Could just check if they have the sk
 			break;
 		}
 	case BARD:
+	case DIRGE:
 	case BARDGM:
 		{
 			if(GetLevel() < 58)

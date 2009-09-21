@@ -124,6 +124,19 @@ const char* GetEQClassName(int8 class_, int8 level) {
             return "Minstrel"; 
          else 
             return "Bard"; 
+      case DIRGE: //Shin: New Bard
+	     /*if (level >= 70) 
+			return "Performer";
+         else if (level >= 65) 
+            return "Maestro"; 
+         else if (level >= 60) 
+            return "Virtuoso"; 
+         else if (level >= 55) 
+            return "Troubadour"; 
+         else if (level >= 51) 
+            return "Minstrel"; 
+         else */
+            return "Dirge"; 
       case ROGUE: 
 		 if (level >= 70) 
 			return "Nemesis"; 
@@ -308,6 +321,8 @@ int32 GetArrayEQClass(int8 eqclass) {
 			return MONK;
 		case BARD:
 			return BARD;
+		case DIRGE: //Shin: New Bard
+			return DIRGE;
 		case ROGUE:
 			return ROGUE;
 		case SHAMAN:

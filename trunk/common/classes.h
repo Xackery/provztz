@@ -36,7 +36,8 @@
 #define ENCHANTER   14
 #define BEASTLORD   15
 #define BERSERKER   16
-#define PLAYER_CLASS_COUNT	16 // used for array defines, must be the count of playable classes
+#define DIRGE       17 //Shin: New Class
+#define PLAYER_CLASS_COUNT	17 // used for array defines, must be the count of playable classes
 #define WARRIORGM 20 
 #define CLERICGM 21 
 #define PALADINGM 22 
@@ -77,6 +78,7 @@
 #define shaman_1 512
 #define beastlord_1 16384
 #define berserker_1 32768
+#define dirge_1 131072 //Shin: New bard, not sure this val may give issues.
 #define call_1 65536
 
 const char* GetEQClassName(int8 class_, int8 level = 0);

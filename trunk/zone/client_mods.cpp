@@ -325,6 +325,7 @@ int16 Mob::GetClassLevelFactor(){
 		}
 		case MONK:
 		case BARD:
+		case DIRGE:
 		case ROGUE:
 		case BEASTLORD:{
 			if (mlevel < 51)
@@ -1518,7 +1519,7 @@ sint16  Client::CalcATK() {
 }
 
 int16 Mob::GetInstrumentMod(int16 spell_id) const {
-	if(GetClass() != BARD)
+	if(GetClass() != BARD && GetClass() != DIRGE)
 		return(10);
 	
 	int16 effectmod = 10;

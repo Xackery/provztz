@@ -1342,8 +1342,10 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 				if(spell_id == 2488)   //Dook- Lifeburn fix
 					break;
 
-				if(IsClient())
-					CastToClient()->SetFeigned(true);
+				if(IsClient() && caster->CastToClient()->GetTarget()->IsClient()) //Shin: my temp hack of Feign Death
+					//CastToClient()->SetFeigned(true);
+					caster->CastToClient()->GetTarget()->CastToClient()->SetFeigned(true);				
+					caster->CastToClient()->GetTarget()->CastToClient()->SendAppearancePacket(AT_Anim, 115);
 				break;
 			}
 
@@ -2424,7 +2426,7 @@ bool Mob::SpellEffect(Mob* caster, int16 spell_id, float partial)
 				snprintf(effect_desc, _EDLEN, "Fading Memories");
 #endif
 				//bard mana check, doesnt use it, just checks it-
-				if((caster)&&(caster->IsClient())&&(caster->GetMana() <= 899)&&(caster->GetClass() == BARD)) {
+				if((caster)&&(caster->IsClient())&&(caster->GetMana() <= 899)&&(caster->GetClass() == BARD)&&(caster->GetClass() == DIRGE)) {
 					caster->Message(13,"Insufficient Mana to cast this Spell.");
 					break;
 				}

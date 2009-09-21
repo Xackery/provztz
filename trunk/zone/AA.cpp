@@ -739,6 +739,12 @@ void Mob::WakeTheDead(int16 spell_id, Mob *target, uint32 duration)
 		make_npc->max_hp = make_npc->max_hp * 110 / 100;
 		make_npc->npc_spells_id = 11;
 		break;
+	case DIRGE: //Shin: New Bard
+		make_npc->npc_attacks[0] = 'T';
+		make_npc->cur_hp = make_npc->cur_hp * 110 / 100;
+		make_npc->max_hp = make_npc->max_hp * 110 / 100;
+		make_npc->npc_spells_id = 11;
+		break;
 	case BEASTLORD:
 		make_npc->npc_attacks[0] = 'Q';
 		make_npc->cur_hp = make_npc->cur_hp * 110 / 100;

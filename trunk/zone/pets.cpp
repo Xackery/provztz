@@ -162,6 +162,7 @@ const char *GetRandPetName()
 		}
 		case MONK:
 		case BARD:
+		case DIRGE:
 		case ROGUE:
 		case BEASTLORD:{
 			if (levelb < 51)
