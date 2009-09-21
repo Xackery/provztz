@@ -407,6 +407,14 @@ void Bot::GenerateBaseStats() {
 				Agility += 10;
 				Attack += 25;
 				break;
+			case 17: // Dirge, this will never be used though.
+				BotSpellID = 711;
+				Strength += 15;
+				Dexterity += 10;
+				Charisma += 15;
+				Intelligence += 10;
+				Attack += 17;
+				break;
 	}
 
 	float BotSize = GetSize();
@@ -649,6 +657,7 @@ void Bot::GenerateBaseHitPoints() {
 				break;
 			case MONK:
 			case BARD:
+			case DIRGE: //Doubt this will be used.
 			case ROGUE:
 			case BEASTLORD:
 				multiplier = 180;
@@ -718,6 +727,7 @@ bool Bot::IsValidRaceClassCombo() {
 				case 12: // Wizard
 				case 13: // Magician
 				case 14: // Enchanter
+				case 17: // Dirge
 					Result = true;
 					break;
 			}
@@ -752,6 +762,7 @@ bool Bot::IsValidRaceClassCombo() {
 			case 4: // Ranger
 			case 6: // Druid
 			case 8: // Bard
+			case 17: // Dirge
 			case 9: // Rogue
 				Result = true;
 				break;
@@ -789,6 +800,7 @@ bool Bot::IsValidRaceClassCombo() {
 			case 4: // Ranger
 			case 6: // Druid
 			case 8: // Bard
+			case 17: // Dirge
 			case 9: // Rogue
 				Result = true;
 				break;
@@ -874,6 +886,7 @@ bool Bot::IsValidRaceClassCombo() {
 			case 10: // Shaman
 			case 15: // Beastlord
 			case 16: // Berserker
+			case 17: // Dirge
 				Result = true;
 				break;
 				}
@@ -1208,7 +1221,7 @@ bool Bot::AI_EngagedCastCheck() {
 				}
 			}
 		}
-		else if(botClass == BARD) {
+		else if(botClass == BARD || botClass == DIRGE) {
 			if(!Bot_AICastSpell(this, 100, SpellType_Buff)) {
 				if(!Bot_AICastSpell(GetTarget(), 100, SpellType_Nuke | SpellType_Dispel | SpellType_Escape)) {// Bards will use their debuff songs
 					AIautocastspell_timer->Start(RandomTimer(10, 50), false);
@@ -1228,7 +1241,7 @@ bool Bot::AI_EngagedCastCheck() {
 			}
 		}
 
-		if(botClass != BARD) {
+		if(botClass != BARD && botClass != DIRGE) {
 			AIautocastspell_timer->Start(RandomTimer(500, 2000), false);
 		}
 
@@ -1495,7 +1508,7 @@ bool Bot::CheckBotDoubleAttack(bool tripleAttack) {
 
 	int32 aaBonus = 0;
 	uint8 aalevel = GetLevel();
-	if((classtype == BEASTLORD)||(classtype == BARD)) { // AA's Beastial Frenzy, Harmonious Attacks
+	if((classtype == BEASTLORD)||(classtype == BARD)||(classtype == DIRGE)) { // AA's Beastial Frenzy, Harmonious Attacks
 		if(aalevel >= 65) {
 			aaBonus += 5;
 		}
@@ -1640,13 +1653,13 @@ bool Bot::Bot_AICastSpell(Mob* tar, int8 iChance, int16 iSpellTypes) {
 							&& tar->DontHealMeBefore() < Timer::GetCurrentTime()
 							&& tar->CanBuffStack(AIspells[i].spellid, botLevel, true) >= 0))
 						{
-							if(botClass == BARD) {
+							if(botClass == BARD || botClass == DIRGE) {
 								if(IsEffectInSpell(AIspells[i].spellid, SE_MovementSpeed) && !zone->CanCastOutdoor()) {
 									break;
 								}
 							}
 							int8 hpr = (int8)tar->GetHPRatio();
-							if(hpr<= 80 || ((tar->IsClient()||tar->IsPet()) && (hpr <= 98)) || (botClass == BARD))
+							if(hpr<= 80 || ((tar->IsClient()||tar->IsPet()) && (hpr <= 98)) || (botClass == BARD) || (botClass == DIRGE))
 							{
 								if(tar->GetClass() == NECROMANCER) {
 									// Necro bots use too much cleric mana with thier
@@ -1765,8 +1778,8 @@ bool Bot::Bot_AICastSpell(Mob* tar, int8 iChance, int16 iSpellTypes) {
 						break;
 										   }
 					case SpellType_Nuke: {
-						if(((MakeRandomInt(1, 100) < 50) || ((botClass == BARD) || (botClass == SHAMAN) || (botClass == ENCHANTER)))
-							&& ((tar->GetHPRatio() <= 95.0f) || ((botClass == BARD) || (botClass == SHAMAN) || (botClass == ENCHANTER)))
+						if(((MakeRandomInt(1, 100) < 50) || ((botClass == DIRGE) || (botClass == BARD) || (botClass == SHAMAN) || (botClass == ENCHANTER)))
+							&& ((tar->GetHPRatio() <= 95.0f) || ((botClass == DIRGE) ||(botClass == BARD) || (botClass == SHAMAN) || (botClass == ENCHANTER)))
 							&& !tar->IsImmuneToSpell(AIspells[i].spellid, this)
 							&& (tar->CanBuffStack(AIspells[i].spellid, botLevel, true) >= 0))
 						{
@@ -2082,7 +2095,7 @@ bool Bot::Bot_AI_IdleCastCheck() {
 			}
 		}		
 		// bard bots
-		else if(botClass == BARD)
+		else if(botClass == BARD || botClass == DIRGE)
 		{
 			Bot_AICastSpell(this, 100, SpellType_Heal);
 			AIautocastspell_timer->Start(1000, false);
@@ -2127,7 +2140,7 @@ void Bot::AI_Process() {
 	int8 botClass = GetClass();
 	uint8 botLevel = GetLevel();
 
-	if(IsCasting() && (botClass != BARD))
+	if(IsCasting() && (botClass != BARD) && (botClass != DIRGE))
 		return;
 
 	// A bot wont start its AI if not grouped

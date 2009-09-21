@@ -829,6 +829,7 @@ NPC* NPC::SpawnNPC(const char* spawncommand, float in_x, float in_y, float in_z,
 				
 			case MONK:
 			case BARD:
+			case DIRGE:
 			case ROGUE:
 				//		case BEASTLORD:
 				if (tmplevel < 51)

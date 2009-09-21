@@ -794,7 +794,7 @@ void Mob::CastedSpellFinished(int16 spell_id, int32 target_id, int16 slot, int16
 	Mob *spell_target = entity_list.GetMob(target_id);
 	// here we do different things if this is a bard casting a bard song from
 	// a spell bar slot
-	if(GetClass() == BARD) // bard's can move when casting any spell...
+	if(GetClass() == BARD && GetClass() == DIRGE) // bard's can move when casting any spell...
 	{
 		if (IsBardSong(spell_id)) {
 			if(spells[spell_id].buffduration == 0xFFFF || spells[spell_id].recast_time != 0) {
@@ -3458,6 +3458,7 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 			case SHADOWKNIGHT:
 			specialcases += 7;
 			break;
+			case DIRGE:
 			case BARD:
 			specialcases += 5;
 			break;
@@ -3506,6 +3507,7 @@ float Mob::ResistSpell(int8 resist_type, int16 spell_id, Mob *caster)
 			specialcases += 3;
 			break;
 			case BARD:
+			case DIRGE:
 			specialcases += -5;
 			break;
 			case WARRIOR:
@@ -4553,6 +4555,7 @@ bool Mob::UseBardSpellLogic(int16 spell_id, int slot)
 		spell_id != SPELL_UNKNOWN &&
 		slot != -1 &&
 		GetClass() == BARD &&
+		GetClass() == DIRGE &&
 		slot <= MAX_PP_MEMSPELL &&
 		IsBardSong(spell_id)
 	);

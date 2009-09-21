@@ -2964,7 +2964,7 @@ bool EntityList::MakeTrackPacket(Client* client){
 		distance = (client->GetSkill(TRACKING)*10);
 	else if(client->GetClass() == RANGER)
 		distance = (client->GetSkill(TRACKING)*12);
-	else if(client->GetClass() == BARD)
+	else if(client->GetClass() == BARD || client->GetClass() == BARD)
 		distance = (client->GetSkill(TRACKING)*7); 
 	if(distance <= 0)
 		return false;

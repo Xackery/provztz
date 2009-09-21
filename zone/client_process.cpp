@@ -1142,7 +1142,7 @@ void Client::OPMemorizeSpell(const EQApplicationPacket* app)
 
 	if
 	(
-		GetClass() > 16 ||
+		GetClass() > PLAYER_CLASS_COUNT || //Shin: Bah @ hardcap
 		GetLevel() < spells[memspell->spell_id].classes[GetClass()-1]
 	)
 	{

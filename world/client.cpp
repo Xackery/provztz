@@ -1315,7 +1315,8 @@ bool CheckCharCreateInfo(CharCreate_Struct *cc)
 	{ /*Magician*/      0,  10,   0,   0,   0,  10,   0,  30},
 	{ /*Enchanter*/     0,   0,   0,   0,   0,  10,  10,  30},
 	{ /*Beastlord*/     0,  10,   5,   0,  10,   0,   5,  20},
-	{ /*Berserker*/    10,   5,   0,  10,   0,   0,   0,  25}
+	{ /*Berserker*/    10,   5,   0,  10,   0,   0,   0,  25},
+	{ /*Dirge*/         5,   0,   0,  10,   0,   0,  10,  25}
 	};
 
 	static const bool ClassRaceLookupTable[PLAYER_CLASS_COUNT][_TABLE_RACES]=
@@ -1327,7 +1328,7 @@ bool CheckCharCreateInfo(CharCreate_Struct *cc)
 	{ /*ShadowKnight*/    true,  false,    true,   false,  false,  true,   false,  false, true,  true,  false,   true,  true,  false,  true,   true},
 	{ /*Druid*/           true,  false,    false,  true,   false,  false,  true,   false, false, false, true,    false, false, false,  false,  true},
 	{ /*Monk*/            true,  false,    false,  false,  false,  false,  false,  false, false, false, false,   false, true,  false,  false,  true},
-	{ /*Bard*/            true,  false,    false,  true,   false,  false,  true,   false, false, false, false,   false, false, true,   false,  true},
+	{ /*Bard*/            true,  false,    false,  true,   false,  true,  true,   false, false, false, false,   false, false, true,   false,  true},
 	{ /*Rogue*/           true,  true,     false,  true,   false,  true,   true,   true,  false, false, true,    true,  false, true,   true,   true},
 	{ /*Shaman*/          false, true,     false,  false,  false,  false,  false,  false, true,  true,  false,   false, true,  true,   true,   false},
 	{ /*Necromancer*/     true,  false,    true,   false,  false,  true,   false,  false, false, false, false,   true,  true,  false,  true,   true},
@@ -1335,7 +1336,8 @@ bool CheckCharCreateInfo(CharCreate_Struct *cc)
 	{ /*Magician*/        true,  false,    true,   false,  true,   true,   false,  false, false, false, false,   true,  false, false,  false,  true},
 	{ /*Enchanter*/       true,  false,    true,   false,  true,   true,   false,  false, false, false, false,   true,  false, false,  false,  true},
 	{ /*Beastlord*/       false, true,     false,  false,  false,  false,  false,  false, true,  true,  false,   false, true,  true,   false,  false},
-	{ /*Berserker*/       false, true,     false,  false,  false,  false,  false,  true,  true,  true,  false,   false, false, true,   false,  false}
+	{ /*Berserker*/       false, true,     false,  false,  false,  false,  false,  true,  true,  true,  false,   false, false, true,   false,  false},
+	{ /*Dirge*/            true,  false,    false,  true,   false,  true,  true,   false, false, false, false,   false, false, true,   false,  true}
 	};//Initial table by kathgar, editted by Wiz for accuracy, solar too
 
 	if(!cc) return false;
@@ -1447,6 +1449,12 @@ void Client::SetClassStartingSkills( PlayerProfile_Struct *pp )
    switch( pp->class_ )
    {
    case BARD:
+      {
+         pp->skills[_1H_SLASHING] = 5;
+         pp->skills[SINGING] = 5;
+         break;
+      }
+   case DIRGE:
       {
          pp->skills[_1H_SLASHING] = 5;
          pp->skills[SINGING] = 5;

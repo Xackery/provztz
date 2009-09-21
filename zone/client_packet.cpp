@@ -774,7 +774,7 @@ void Client::Handle_Connect_OP_SendExpZonein(const EQApplicationPacket *app)
 	if (!GetHideMe()) entity_list.QueueClients(this, outapp, true);
 	safe_delete(outapp);
 	if(GetPVP())	//force a PVP update until we fix the spawn struct
-		SendAppearancePacket(AT_PVP, GetPVP(), true, false);
+		SendAppearancePacket(AT_PVP, true, true, false);
 
 	//Send AA Exp packet:
 	if(GetLevel() >= 51)
@@ -849,7 +849,7 @@ void Client::Handle_Connect_OP_WorldObjectsSent(const EQApplicationPacket *app)
 	if (!GetHideMe()) entity_list.QueueClients(this, outapp, true);
 	safe_delete(outapp);
 	if(GetPVP())	//force a PVP update until we fix the spawn struct
-		SendAppearancePacket(AT_PVP, GetPVP(), true, false);
+		SendAppearancePacket(AT_PVP, true, true, false);
 
 	//Send AA Exp packet:
 	if(GetLevel() >= 51)
@@ -2221,10 +2221,10 @@ void Client::Handle_OP_Consider(const EQApplicationPacket *app)
 	else
 		con->faction = 1;
 	con->level = GetLevelCon(tmob->GetLevel());
-	/*if(zone->IsPVPZone()) {
+	if(zone->IsPVPZone()) {
 		if (!tmob->IsNPC() )
 			con->pvpcon = tmob->CastToClient()->GetPVP();
-	}*/	
+	}
 	// Mongrel: If we're feigned show NPC as indifferent
 	if (tmob->IsNPC())
 	{
@@ -6906,7 +6906,7 @@ void Client::Handle_OP_TrackTarget(const EQApplicationPacket *app)
 void Client::Handle_OP_Track(const EQApplicationPacket *app)
 {
 	IsTracking=false;
-	if(GetClass() != RANGER && GetClass() != DRUID && GetClass() != BARD)
+	if(GetClass() != RANGER && GetClass() != DRUID && GetClass() != BARD && GetClass() != DIRGE)
 		return;
 
 	if(!p_timers.Expired(&database, pTimerTracking, false)) {

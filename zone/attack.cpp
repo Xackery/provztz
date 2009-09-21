@@ -1043,7 +1043,7 @@ bool Client::Attack(Mob* other, int Hand, bool bRiposte)
 	
 	//SetAttackTimer();
 	if (
-		   (IsCasting() && GetClass() != BARD)
+		   (IsCasting() && GetClass() != BARD && GetClass() != DIRGE) 
 		|| other == NULL
 		|| ((IsClient() && CastToClient()->dead) || (other->IsClient() && other->CastToClient()->dead))
 		|| (GetHP() < 0)
@@ -1193,6 +1193,9 @@ bool Client::Attack(Mob* other, int Hand, bool bRiposte)
 				min_hit *= 1.10;
 					break;							   
 			case BARD: 
+				max_hit *= 1.12;  //Bards do not get double attack
+				break;
+			case DIRGE: 
 				max_hit *= 1.12;  //Bards do not get double attack
 				break;
 			default:

@@ -8914,7 +8914,7 @@ void command_melody(Client *c, const Seperator *sep)
 	if (!c)
 		return;
 
-	if (c->GetClass() != BARD)
+	if (c->GetClass() != BARD && c->GetClass() != DIRGE)
 		return;
 
 	// no arguments = disable melody
